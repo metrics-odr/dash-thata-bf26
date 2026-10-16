@@ -54,8 +54,8 @@ function derive(a){
     convlp:pv?a.leads/pv:null, vischk:pv?chk/pv:null,
     cpl:a.leads?g/a.leads:null, cpmql:a.mqls?g/a.mqls:null, tx:a.leads?a.mqls/a.leads:null};
 }
-/* --------- FUNIL: MQL → Venda (Vendas/Faturamento já ligados via build.py) ---------
-   Funil do cliente: Impressões → Cliques → Leads → MQLs → Vendas → Faturamento.
+/* --------- FUNIL: Resposta → Venda (Vendas/Faturamento já ligados via build.py) ---------
+   Funil do cliente: Impressões → Cliques → Leads → Respostas → Vendas → Faturamento.
    `vendas`/`fat`/`receita` vêm de DATA.sales (build.py cruza Conversas × Compradores
    por telefone) — um registro POR COMPRA, na data REAL da compra (nunca a data da
    conversa). `salesActive()` filtra por essa data e se propaga em
@@ -69,9 +69,9 @@ function salesOf(a){
   const vendas=(a&&a.vendas)||0, fat=(a&&a.fat)||0, receita=(a&&a.receita)||0;
   const hasAg=agendamentos>0, hasRe=reunioes>0, hasVd=vendas>0||fat>0;
   return {
-    // MQL → Agendamento
+    // Resposta → Agendamento
     agendamentos: hasAg?agendamentos:null,
-    txag:         hasAg&&mqls?agendamentos/mqls:null,     // agendamentos / MQLs
+    txag:         hasAg&&mqls?agendamentos/mqls:null,     // agendamentos / Respostas
     cpag:         hasAg?g/agendamentos:null,               // custo por agendamento
     // Agendamento → Reunião Realizada
     reunioes:     hasRe?reunioes:null,
@@ -458,16 +458,16 @@ function comboChart(id, d){
   charts[id]=new Chart(el,{
     data:{labels, datasets:[
       {type:'bar',label:'Leads',data:d.map(x=>x.leads),backgroundColor:cLeads,yAxisID:'y',borderRadius:3,order:3},
-      {type:'bar',label:'MQLs',data:d.map(x=>x.mqls),backgroundColor:cMqls,yAxisID:'y',borderRadius:3,order:3},
+      {type:'bar',label:'Respostas',data:d.map(x=>x.mqls),backgroundColor:cMqls,yAxisID:'y',borderRadius:3,order:3},
       {type:'line',label:'Gasto',data:d.map(x=>+(x.sp*taxf()).toFixed(2)),borderColor:cGasto,backgroundColor:cGasto,yAxisID:'y1',borderWidth:2,pointRadius:2,tension:.25,order:1},
       {type:'line',label:'CPL',data:d.map(x=>x.leads?+((x.sp*taxf())/x.leads).toFixed(2):null),borderColor:cCpl,backgroundColor:cCpl,yAxisID:'y1',borderWidth:2,pointRadius:2,spanGaps:true,tension:.25,order:0},
-      {type:'line',label:'CPMQL',data:d.map(x=>x.mqls?+((x.sp*taxf())/x.mqls).toFixed(2):null),borderColor:cCpmql,backgroundColor:cCpmql,yAxisID:'y1',borderWidth:2,pointRadius:2,spanGaps:true,tension:.25,order:0},
+      {type:'line',label:'Custo/Resp.',data:d.map(x=>x.mqls?+((x.sp*taxf())/x.mqls).toFixed(2):null),borderColor:cCpmql,backgroundColor:cCpmql,yAxisID:'y1',borderWidth:2,pointRadius:2,spanGaps:true,tension:.25,order:0},
     ]},
     options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
       plugins:{legend:{labels:{color:cink(),boxWidth:10,usePointStyle:true,font:{size:11}}},
         tooltip:{callbacks:{label:c=>{const v=c.raw; return c.dataset.label+': '+(c.dataset.yAxisID==='y1'?brl(v):intf(v));}}}},
       scales:{x:{ticks:{color:mut,font:{size:10}},grid:{display:false}},
-        y:{position:'left',ticks:{color:mut,font:{size:10}},grid:{color:gr},beginAtZero:true,title:{display:true,text:'Leads / MQLs',color:mut,font:{size:10}}},
+        y:{position:'left',ticks:{color:mut,font:{size:10}},grid:{color:gr},beginAtZero:true,title:{display:true,text:'Leads / Respostas',color:mut,font:{size:10}}},
         y1:{position:'right',ticks:{color:mut,font:{size:10}},grid:{display:false},beginAtZero:true,title:{display:true,text:'R$',color:mut,font:{size:10}}}}}
   });
 }
@@ -491,7 +491,7 @@ function lineChart(id, d){
   const cCpmql=cvar('--chart-cpmql'), cCpl=cvar('--chart-cpl')||cink();
   charts[id]=new Chart(el,{type:'line',
     data:{labels,datasets:[
-      {label:'CPMQL',data:d.map(x=>x.mqls?+((x.sp*taxf())/x.mqls).toFixed(2):null),borderColor:cCpmql,backgroundColor:cCpmql,borderWidth:2,pointRadius:2,spanGaps:true,tension:.25},
+      {label:'Custo/Resp.',data:d.map(x=>x.mqls?+((x.sp*taxf())/x.mqls).toFixed(2):null),borderColor:cCpmql,backgroundColor:cCpmql,borderWidth:2,pointRadius:2,spanGaps:true,tension:.25},
       {label:'CPL',data:d.map(x=>x.leads?+((x.sp*taxf())/x.leads).toFixed(2):null),borderColor:cCpl,backgroundColor:cCpl,borderWidth:2,pointRadius:2,spanGaps:true,tension:.25},
     ]},
     options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
@@ -499,21 +499,21 @@ function lineChart(id, d){
       scales:{x:{ticks:{color:mut,font:{size:9}},grid:{display:false}},y:{ticks:{color:mut,font:{size:9}},grid:{color:cgrid()},beginAtZero:true}}}});
 }
 
-/* Donut de taxa de qualificação (Mar02): verde = MQL · vermelho = desqualificado */
+/* Donut de taxa de qualificação (Mar02): verde = Resposta · vermelho = desqualificado */
 function donutQlf(id, mqls, leads){
   destroy(id); const el=document.getElementById(id); if(!el) return;
   const dsq=Math.max(0,leads-mqls);
   charts[id]=new Chart(el,{type:'doughnut',
-    data:{labels:['MQL (qualificado)','Desqualificado'],datasets:[{data:[mqls,dsq],
+    data:{labels:['Respondeu','Não respondeu'],datasets:[{data:[mqls,dsq],
       backgroundColor:[cvar('--good'),cvar('--bad')],borderColor:cvar('--surface'),borderWidth:2}]},
     options:{responsive:true,maintainAspectRatio:false,cutout:'68%',
       plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.label+': '+intf(c.raw)+(leads?' ('+pct(c.raw/leads)+')':'')}}}}});
   const el2=document.getElementById('mQlfPct'); if(el2) el2.textContent=pct(leads?mqls/leads:null);
 }
-/* Mar03/Mar10: MQLs por dimensão (campanha/conjunto/anúncio) por dia — 1 linha por membro.
+/* Mar03/Mar10: Respostas por dimensão (campanha/conjunto/anúncio) por dia — 1 linha por membro.
    Legenda é um painel HTML próprio (fora do canvas) — a legenda NATIVA do Chart.js
    quebra/trunca nomes longos porque respeita a largura do canvas; a nossa não.
-   Formato de cada linha: [quadrado da cor] Nome completo da campanha ... CPMQL.
+   Formato de cada linha: [quadrado da cor] Nome completo da campanha ... Custo/Resp..
    Clique numa linha da legenda OU numa linha do gráfico filtra a tabela (selDim);
    quando a tabela já tem seleção (STATE.mSel*), o gráfico plota SÓ as linhas
    selecionadas (a legenda continua listando todas p/ dar pra trocar a seleção). */
@@ -521,7 +521,7 @@ function mqlByDimChart(id, fL, fM, agg, dim, selSet){
   destroy(id); const el=document.getElementById(id); const legEl=document.getElementById(id+'Legend');
   if(!el) return;
   const days=[...new Set([...fL,...fM].filter(r=>r.d).map(r=>r.d))].sort();
-  // ordena por CPMQL (melhor primeiro; sem MQL/gasto fica no fim) — ordem estável p/ cor e legenda
+  // ordena por Custo/Resp. (melhor primeiro; sem Resposta/gasto fica no fim) — ordem estável p/ cor e legenda
   const members=[...new Set(fL.map(r=>r[dim]))].sort((a,b)=>{
     const ca=agg[a]?derive(agg[a]).cpmql:null, cb=agg[b]?derive(agg[b]).cpmql:null;
     if(ca==null&&cb==null) return 0; if(ca==null) return 1; if(cb==null) return -1; return ca-cb;
@@ -531,7 +531,7 @@ function mqlByDimChart(id, fL, fM, agg, dim, selSet){
   // com seleção ativa nesta MESMA dimensão, o GRÁFICO plota só as linhas selecionadas
   // (a legenda abaixo continua mostrando todos os membros, pra dar pra trocar a seleção)
   const plotMembers = (selSet&&selSet.size) ? members.filter(m=>selSet.has(m)) : members;
-  // métrica do gráfico: CUSTO POR MQL por dia (gasto do dia / MQLs do dia), não contagem
+  // métrica do gráfico: CUSTO POR Resposta por dia (gasto do dia / Respostas do dia), não contagem
   const dsets=plotMembers.map(mv=>{
     const idx=members.indexOf(mv);
     const spDay={}, mqlDay={}; days.forEach(d=>{spDay[d]=0; mqlDay[d]=0;});
@@ -549,16 +549,16 @@ function mqlByDimChart(id, fL, fM, agg, dim, selSet){
         if(idx!=null&&dsets[idx]) selDim(dimChar,dsets[idx].label,false); } },
       plugins:{
         legend:{display:false},   // legenda nativa desligada — usamos o painel HTML abaixo
-        // tooltip: nome COMPLETO do dataset (nunca o rótulo do eixo X) + CPMQL do dia.
+        // tooltip: nome COMPLETO do dataset (nunca o rótulo do eixo X) + Custo/Resp. do dia.
         // usa array (2 linhas por item) — o Chart.js NUNCA corta/trunca texto do tooltip.
         tooltip:{displayColors:true,
-          callbacks:{title:()=>'', label:c=>[c.dataset.label, (c.raw==null?'-':brl(c.raw))+' / MQL']}}
+          callbacks:{title:()=>'', label:c=>[c.dataset.label, (c.raw==null?'-':brl(c.raw))+' / Resposta']}}
       },
       scales:{x:{ticks:{color:mut,font:{size:9}},grid:{display:false}},
         y:{ticks:{color:mut,font:{size:9},callback:v=>'R$'+nf0.format(v)},grid:{color:cgrid()},beginAtZero:true}}
     }
   });
-  // painel de legenda HTML: quadrado da cor | nome completo (1 linha, nunca corta) | CPMQL
+  // painel de legenda HTML: quadrado da cor | nome completo (1 linha, nunca corta) | Custo/Resp.
   if(legEl){
     legEl.innerHTML = members.map((mv,idx)=>{
       const col=pal[idx%pal.length];
@@ -599,10 +599,7 @@ function renderGeralCore(ids){
     ['Cliques', intf(t.cl), [['CTR',pct(dv.ctr)],['CPC',brl(dv.cpc)]]],
     ['Page Views', intf(t.pv), [['CR',pct(dv.cr)],['CPV',brl(dv.cpv)]]],
     ['Leads', intf(t.leads), [['CPL',brl(dv.cpl)],['ConvLP',pct(dv.convlp)]]],
-    ['MQLs (Médicos)', intf(t.mqls), [['Tx‑MQL',pct(dv.tx)],['CPMQL',brl(dv.cpmql)]], false, 'hl-mql'],
-    ['Vendas', s.vendas!=null?intf(s.vendas):NA, [['ConvMQL',s.convmql!=null?pct(s.convmql):NA],['CAC',s.cac!=null?brl(s.cac):NA]], s.vendas==null],
-    ['Receita', s.receita!=null?brl(s.receita):NA, [['ROAS',s.roasReceita!=null?numf(s.roasReceita):NA],['Ticket',s.tmReceita!=null?brl(s.tmReceita):NA]], s.receita==null, 'hl-fat'],
-    ['Faturamento', s.fat!=null?brl(s.fat):NA, [['ROAS',s.roas!=null?numf(s.roas):NA],['Ticket',s.tm!=null?brl(s.tm):NA]], s.fat==null, 'hl-fat'],
+    ['Respostas (pesquisa)', intf(t.mqls), [['Tx. resposta',pct(dv.tx)],['Custo/Resp.',brl(dv.cpmql)]], false, 'hl-mql'],
   ];
   document.getElementById(ids.funnel).innerHTML=funnelHTML(steps);
   // ---- Mar05: métricas secundárias mais úteis (não repetem o funil) ----
@@ -618,10 +615,10 @@ function renderGeralCore(ids){
   const concTop=(t.mqls&&topAd)?topAd.m/t.mqls:null;
   const adShort=s=>{ s=String(s||'—'); return s.length>22?s.slice(0,21)+'…':s; };
   const k2=[
-    {label:'MQLs por dia (média)',val:numf(t.mqls/nDays),aux:numf(t.leads/nDays)+' leads/dia'},
-    {label:'Melhor CPMQL (anúncio)',val:bestAd?brl(bestAd.v):'-',aux:bestAd?adShort(bestAd.ad):'—'},
-    {label:'Top anúncio (MQLs)',val:topAd?intf(topAd.m):'-',aux:topAd?adShort(topAd.ad):'—'},
-    {label:'Concentração top anúncio',val:pct(concTop),aux:'% dos MQLs no melhor anúncio'},
+    {label:'Respostas por dia (média)',val:numf(t.mqls/nDays),aux:numf(t.leads/nDays)+' leads/dia'},
+    {label:'Melhor Custo/Resp. (anúncio)',val:bestAd?brl(bestAd.v):'-',aux:bestAd?adShort(bestAd.ad):'—'},
+    {label:'Top anúncio (Respostas)',val:topAd?intf(topAd.m):'-',aux:topAd?adShort(topAd.ad):'—'},
+    {label:'Concentração top anúncio',val:pct(concTop),aux:'% dos Respostas no melhor anúncio'},
     {label:'Anúncios ativos',val:intf(nAdsAtivos),aux:intf(nCampAtivas)+' campanhas c/ gasto'},
     {label:'% Eficácia Rastr.',val:pct(t.leads?comUtm/t.leads:null),aux:'Leads c/ UTM / Leads'},
     {label:'Leads Orgânicos',val:intf(nOrg),aux:'sem fonte paga'},
@@ -658,17 +655,17 @@ function renderGeralCore(ids){
    Top Anúncios · Piores Anúncios · Briefing do Gestor. */
 const AD_LINKS = DATA.ad_links || {};
 const SAMPLE_MIN_SPEND = (B.sample_min_spend!=null?B.sample_min_spend:100);
-const SAMPLE_MIN_MQLS  = (B.sample_min_mqls!=null?B.sample_min_mqls:3);
+const SAMPLE_MIN_RespostaS  = (B.sample_min_mqls!=null?B.sample_min_mqls:3);
 const escHtml=s=>String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 
 /* ---- Metas & parâmetros (painel editável) — ajusta cores/amostra AO VIVO ----
    Defaults vêm do build.py; o usuário edita no painel (persistido em
-   localStorage 'dm_metas') e as tabelas de anúncio recoram CPMQL/CAC e reavaliam
+   localStorage 'dm_metas') e as tabelas de anúncio recoram Custo/Resp./CAC e reavaliam
    a amostra na hora. Meta null = "não definida" (métrica fica sem cor). */
 const METAS_DEFAULT = {
   cpmql: (B.meta_cpmql!=null?B.meta_cpmql:null),
   cac:   (B.meta_cac!=null?B.meta_cac:null),
-  volMin:(B.volume_min_amostral!=null?B.volume_min_amostral:SAMPLE_MIN_MQLS),
+  volMin:(B.volume_min_amostral!=null?B.volume_min_amostral:SAMPLE_MIN_RespostaS),
   nDias: (B.n_dias_corte!=null?B.n_dias_corte:5),
 };
 function loadMetas(){
@@ -715,9 +712,9 @@ function adStructMap(fM,fL){
   return out;
 }
 /* amostra relevante para JULGAR o anúncio (senão: "Em observação"). O limiar de
-   MQLs vem do painel de metas (volume mínimo amostral), editável ao vivo. */
+   Respostas vem do painel de metas (volume mínimo amostral), editável ao vivo. */
 function adSampleOk(a){ return a.sp>=SAMPLE_MIN_SPEND && a.mqls>=METAS.volMin; }
-/* qualidade pelo resultado MAIS PROFUNDO disponível (venda>reunião>agendamento>MQL>lead):
+/* qualidade pelo resultado MAIS PROFUNDO disponível (venda>reunião>agendamento>Resposta>lead):
    tier alto = etapa mais profunda; dentro do tier, mais volume e menor custo = melhor. */
 function adQuality(a){
   const d=derive(a), s=salesOf(a);
@@ -740,8 +737,8 @@ const AD_COLS=[
   {k:'ad',label:'Anúncio',dim:true,stk:'l1'},{k:'status',label:'Status',dim:true,stk:'l2'},
   {k:'camp',label:'Campanha',dim:true},{k:'adset',label:'Conjunto',dim:true},
   {k:'gasto',label:'Gasto'},{k:'im',label:'Impr.'},{k:'cpm',label:'CPM'},{k:'ctr',label:'CTR'},
-  {k:'leads',label:'Leads'},{k:'cpl',label:'CPL'},{k:'mqls',label:'MQLs'},{k:'tx',label:'Tx‑MQL'},{k:'cpmql',label:'CPMQL'},
-  {k:'convmql',label:'ConvMQL'},{k:'vendas',label:'Vendas'},{k:'cac',label:'CAC'},{k:'fat',label:'Faturamento'},{k:'roas',label:'ROAS'},
+  {k:'leads',label:'Leads'},{k:'cpl',label:'CPL'},{k:'mqls',label:'Respostas'},{k:'tx',label:'Tx. resposta'},{k:'cpmql',label:'Custo/Resp.'},
+  {k:'convmql',label:'ConvResp'},{k:'vendas',label:'Vendas'},{k:'cac',label:'CAC'},{k:'fat',label:'Faturamento'},{k:'roas',label:'ROAS'},
   {k:'link',label:'Link',dim:true,stk:'r'},
 ];
 function adRowCells(ad,a,struct){
@@ -762,9 +759,9 @@ function relRenderAdTable(id,list){
     {key:'gasto',label:'Gasto',type:'brl'},{key:'im',label:'Impr.',type:'int'},
     {key:'cpm',label:'CPM',type:'brl'},{key:'ctr',label:'CTR',type:'pct'},
     {key:'leads',label:'Leads',type:'int'},{key:'cpl',label:'CPL',type:'brl'},
-    {key:'mqls',label:'MQLs',type:'int'},{key:'tx',label:'Tx‑MQL',type:'pct'},
-    {key:'cpmql',label:'CPMQL',type:'brl'},
-    {key:'convmql',label:'ConvMQL',type:'pct'},
+    {key:'mqls',label:'Respostas',type:'int'},{key:'tx',label:'Tx. resposta',type:'pct'},
+    {key:'cpmql',label:'Custo/Resp.',type:'brl'},
+    {key:'convmql',label:'ConvResp',type:'pct'},
     {key:'vendas',label:'Vendas',type:'int'},
     {key:'cac',label:'CAC',type:'brl'},
     {key:'fat',label:'Faturamento',type:'brl'},
@@ -779,7 +776,7 @@ function relRenderAdTable(id,list){
   renderTable({
     id, cols, rows, center:true,   // Mar10: só as MÉTRICAS centralizam; dim fica à esquerda (CSS .dt-center)
     // roda em TODA renderização (inclusive ao ordenar por um cabeçalho) — chip de
-    // status e cores de meta (CPMQL/CAC) nunca mais somem ao clicar pra ordenar
+    // status e cores de meta (Custo/Resp./CAC) nunca mais somem ao clicar pra ordenar
     afterRender:(table,sortedRows)=>{
       table.querySelectorAll('tbody tr').forEach((tr,idx)=>{
         const item=sortedRows[idx]; if(!item) return;
@@ -911,9 +908,9 @@ function renderMetasNote(){
   const cpmql=METAS.cpmql==null?'<b>não definida</b>':('<b>'+brl(METAS.cpmql)+'</b>');
   const cac=METAS.cac==null?'<b>não definida</b>':('<b>'+brl(METAS.cac)+'</b>');
   const semMeta=(METAS.cpmql==null||METAS.cac==null);
-  el.innerHTML=`Referência ativa — Meta CPMQL: ${cpmql} · Meta CAC: ${cac} · Amostra mínima: <b>${intf(METAS.volMin)} MQLs</b> · Corte após <b>${intf(METAS.nDias)} dias</b> acima do teto. `
-    +(semMeta?'Preencha as metas para colorir CPMQL/CAC nas tabelas de anúncio.':'')
-    +' Código de cor (CPMQL/CAC): <span class="mc-lg mc-green">verde ≤ meta</span> <span class="mc-lg mc-yellow">amarelo até +30%</span> <span class="mc-lg mc-red">vermelho acima</span>.';
+  el.innerHTML=`Referência ativa — Meta Custo/Resp.: ${cpmql} · Meta CAC: ${cac} · Amostra mínima: <b>${intf(METAS.volMin)} Respostas</b> · Corte após <b>${intf(METAS.nDias)} dias</b> acima do teto. `
+    +(semMeta?'Preencha as metas para colorir Custo/Resp./CAC nas tabelas de anúncio.':'')
+    +' Código de cor (Custo/Resp./CAC): <span class="mc-lg mc-green">verde ≤ meta</span> <span class="mc-lg mc-yellow">amarelo até +30%</span> <span class="mc-lg mc-red">vermelho acima</span>.';
 }
 function syncMetasInputs(){
   const set=(id,v)=>{ const el=document.getElementById(id); if(el) el.value=(v==null?'':v); };
@@ -943,9 +940,9 @@ const DAILY_COLS=[
   {key:'gasto',label:'Gasto',type:'brl',heat:'gasto'},{key:'cpm',label:'CPM',type:'brl'},
   {key:'ctr',label:'CTR',type:'pct'},{key:'cr',label:'CR',type:'pct'},{key:'convlp',label:'ConvLP',type:'pct'},
   {key:'leads',label:'Leads',type:'int',heat:'leads'},{key:'cpl',label:'CPL',type:'brl'},
-  {key:'tx',label:'Tx‑MQL',type:'pct'},{key:'mqls',label:'MQLs',type:'int',heat:'mqls'},{key:'cpmql',label:'CPMQL',type:'brl'},
+  {key:'tx',label:'Tx. resposta',type:'pct'},{key:'mqls',label:'Respostas',type:'int',heat:'mqls'},{key:'cpmql',label:'Custo/Resp.',type:'brl'},
   {key:'chk',label:'Checkouts',type:'int'},{key:'vischk',label:'VisCHK',type:'pct'},
-  {key:'convmql',label:'ConvMQL',type:'pct'},{key:'vendas',label:'Vendas',type:'int',heat:'vendas'},{key:'cac',label:'CAC',type:'brl'},
+  {key:'convmql',label:'ConvResp',type:'pct'},{key:'vendas',label:'Vendas',type:'int',heat:'vendas'},{key:'cac',label:'CAC',type:'brl'},
   {key:'fat',label:'Fat.',type:'brl'},{key:'receita',label:'Receita',type:'brl'},{key:'roas',label:'ROAS',type:'num',heat:'roas'},
 ];
 function dailyCells(x,d,isTotal){
@@ -984,20 +981,17 @@ function renderMeta(){
     ['Cliques', intf(t.cl), [['CTR',pct(dv.ctr)],['CPC',brl(dv.cpc)]]],
     ['Page Views', intf(t.pv), [['CR',pct(dv.cr)],['CPV',brl(dv.cpv)]]],
     ['Leads', intf(t.leads), [['CPL',brl(dv.cpl)],['ConvLP',pct(dv.convlp)]]],
-    ['MQLs (Médicos)', intf(t.mqls), [['Tx‑MQL',pct(dv.tx)],['CPMQL',brl(dv.cpmql)]], false, 'hl-mql'],
-    ['Vendas', s.vendas!=null?intf(s.vendas):NA, [['ConvMQL',s.convmql!=null?pct(s.convmql):NA],['CAC',s.cac!=null?brl(s.cac):NA]], s.vendas==null],
-    ['Receita', s.receita!=null?brl(s.receita):NA, [['ROAS',s.roasReceita!=null?numf(s.roasReceita):NA],['Ticket',s.tmReceita!=null?brl(s.tmReceita):NA]], s.receita==null, 'hl-fat'],
-    ['Faturamento', s.fat!=null?brl(s.fat):NA, [['ROAS',s.roas!=null?numf(s.roas):NA],['Ticket',s.tm!=null?brl(s.tm):NA]], s.fat==null, 'hl-fat'],
+    ['Respostas (pesquisa)', intf(t.mqls), [['Tx. resposta',pct(dv.tx)],['Custo/Resp.',brl(dv.cpmql)]], false, 'hl-mql'],
   ];
   document.getElementById('metaFunnel').innerHTML=funnelHTML(steps);
 
   comboChart('mCombo', daily(fL,fM,fS));
-  // Mar02: barras de MQLs por anúncio (não leads)
+  // Mar02: barras de Respostas por anúncio (não leads)
   const mqlByAd={}; fL.forEach(l=>{ mqlByAd[l.ad]=(mqlByAd[l.ad]||0)+l.q; });
-  hbar('mMqlAd', Object.entries(mqlByAd).map(([label,leads])=>({label,leads})), x=>x.leads, ()=>cvar('--chart-mqls'), 10, 'MQLs');
-  // Mar02: donut de taxa de qualificação (verde = MQL, vermelho = desqualificado)
+  hbar('mMqlAd', Object.entries(mqlByAd).map(([label,leads])=>({label,leads})), x=>x.leads, ()=>cvar('--chart-mqls'), 10, 'Respostas');
+  // Mar02: donut de taxa de qualificação (verde = Resposta, vermelho = desqualificado)
   donutQlf('mQlfDonut', t.mqls, t.leads);
-  // Compilado dos Anúncios (CAC/Fat/ROAS "-" até conectar compradores; ordena por CPMQL como proxy)
+  // Compilado dos Anúncios (CAC/Fat/ROAS "-" até conectar compradores; ordena por Custo/Resp. como proxy)
   const adAggM=buildAgg(fL,fM,fS,'ad');
   const topCacRows=Object.entries(adAggM).map(([ad,a])=>{const d=derive(a),s=salesOf(a);
     return {k:ad, cells:{dim:ad,mqls:a.mqls,cpmql:d.cpmql,vendas:s.vendas,cac:s.cac,fat:s.fat,roas:s.roas},
@@ -1007,8 +1001,8 @@ function renderMeta(){
   // largura automática por coluna + scroll horizontal dentro do próprio card
   // (mesmo padrão das tabelas hierárquicas), em vez de espremer tudo.
   renderTable({id:'mTopCac', center:true,
-    cols:[{key:'dim',label:'Anúncios',type:'dim',big:true},{key:'mqls',label:'MQLs',type:'int'},
-      {key:'cpmql',label:'CPMQL',type:'brl'},{key:'vendas',label:'Vendas',type:'int'},
+    cols:[{key:'dim',label:'Anúncios',type:'dim',big:true},{key:'mqls',label:'Respostas',type:'int'},
+      {key:'cpmql',label:'Custo/Resp.',type:'brl'},{key:'vendas',label:'Vendas',type:'int'},
       {key:'cac',label:'CAC',type:'brl'},{key:'fat',label:'Fat.',type:'brl'},{key:'roas',label:'ROAS',type:'num'}],
     rows:topCacRows});
 
@@ -1030,9 +1024,9 @@ function renderMeta(){
     {key:'cpm',label:'CPM',type:'brl'},
     {key:'ctr',label:'CTR',type:'pct'},{key:'cr',label:'CR',type:'pct'},{key:'convlp',label:'ConvLP',type:'pct'},
     {key:'leads',label:'Leads',type:'int'},{key:'cpl',label:'CPL',type:'brl'},
-    {key:'tx',label:'Tx‑MQL',type:'pct'},
-    {key:'mqls',label:'MQLs',type:'int'},{key:'cpmql',label:'CPMQL',type:'brl'},
-    {key:'convmql',label:'ConvMQL',type:'pct'},{key:'vendas',label:'Vendas',type:'int'},{key:'cac',label:'CAC',type:'brl'},
+    {key:'tx',label:'Tx. resposta',type:'pct'},
+    {key:'mqls',label:'Respostas',type:'int'},{key:'cpmql',label:'Custo/Resp.',type:'brl'},
+    {key:'convmql',label:'ConvResp',type:'pct'},{key:'vendas',label:'Vendas',type:'int'},{key:'cac',label:'CAC',type:'brl'},
     {key:'fat',label:'Fat.',type:'brl'},{key:'receita',label:'Receita',type:'brl'},{key:'roas',label:'ROAS',type:'num'},
   ];
   function hierRows(map){ return Object.entries(map).map(([k,a])=>{const d=derive(a),s=salesOf(a);
@@ -1052,8 +1046,8 @@ function renderMeta(){
   renderTable({id:'tAd', cols:hcols.map((c,i)=>i===0?{...c,label:'Anúncio'}:c), rows:hierRows(aggD), total:totRowOf(totals(Sd.fL,Sd.fM,Sd.fS)),
     selectable:true, selSet:STATE.mSelAd, onSelect:(k,e)=>selDim('D',k,e&&(e.ctrlKey||e.metaKey))});
 
-  // Mar03/Mar10: cada gráfico varia a dimensão da sua tabela — MQLs por dia, 1 linha
-  // por membro, com legenda própria (cor · nome completo · CPMQL) e filtro bidirecional
+  // Mar03/Mar10: cada gráfico varia a dimensão da sua tabela — Respostas por dia, 1 linha
+  // por membro, com legenda própria (cor · nome completo · Custo/Resp.) e filtro bidirecional
   // com a tabela (STATE.mSel* determina quais linhas o gráfico plota).
   mqlByDimChart('chCamp', Sc.fL, Sc.fM, aggC, 'camp', STATE.mSelC);
   mqlByDimChart('chAdset', Sa.fL, Sa.fM, aggA, 'adset', STATE.mSelA);

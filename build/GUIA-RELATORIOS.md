@@ -73,25 +73,19 @@ os Insights.
 
 ## Contexto do funil
 
-**Funil de High Ticket (<<PREENCHER: nome do cliente>>)** — <<PREENCHER: descrição
-curta do cliente/oferta>>. Funil de captura via WhatsApp com venda 1:1 (comercial
-fecha por conversa/reunião, não carrinho direto): o anúncio no Meta Ads leva
-a uma página de captura com botão do WhatsApp; ao clicar, o lead chama no
-WhatsApp Business do cliente e o webhook de mensageria dispara na 1ª mensagem,
-que cai na aba **Conversas** (fonte principal de leads deste dashboard). O
-critério de qualificação (MQL) é <<PREENCHER: critério de MQL do cliente, ex.
-"o lead ser médico">> — se qualificado, segue a conversa com o comercial até a
-venda (registrada na aba de Compradores e cruzada de volta ao anúncio por telefone).
+**Funil Black Friday (Thais Junqueira)** — lançamento meteórico com página de
+captura. Foco total em **leads**; não há MQL nem qualificação, nem venda 1:1 no
+dashboard. O único sinal de qualidade é a **resposta à pesquisa**: o lead que
+aparece também na aba *Respostas da Pesquisa* (cruzado por e-mail/telefone) conta
+como **Resposta**.
 
 ```
-Impressões → Cliques/abertura do WhatsApp → Leads → MQLs → Vendas → Faturamento
+Impressões → Cliques → Page Views → Leads → Respostas (pesquisa)
 ```
 
-- **MQL** = coluna de qualificação (<<PREENCHER: nome da coluna de MQL>>) == "Sim" (ver `build.py` → `is_medico`).
-- **Agendamento** = o lead qualificado marcou horário de reunião com o comercial.
-- **Reunião Realizada** = a reunião de fato aconteceu (o lead compareceu). O
-  inverso disso é o **No‑Show** (agendou e não compareceu) — a métrica de alerta
-  mais importante entre Agendamento e Venda.
+- **Resposta** = lead que respondeu a pesquisa. **Taxa de resposta** = Respostas ÷ Leads.
+  **Custo por resposta** = gasto ÷ Respostas. (No código o campo ainda se chama `mqls`/`q`/`cpmql`.)
+- Vendas, Faturamento, Agendamentos e Reuniões não se aplicam a este funil.
 
 > **Estado atual dos dados:** enquanto só houver mídia paga × Leads, o funil
 > vai até **MQL**. As etapas seguintes (Agendamentos, Reuniões Realizadas, Vendas,

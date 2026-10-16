@@ -34,7 +34,7 @@ from relatorio_lib import (
 
 def daily_series(meta: list[dict], leads: list[dict], start, end, camp=None, adset=None, ad=None) -> list[dict]:
     """Uma linha por dia (spend/leads/mqls + derivadas) — dá ao Claude a base
-    pra enxergar tendência (ex.: CPM subindo/Tx-MQL caindo N dias seguidos)."""
+    pra enxergar tendência (ex.: CPM subindo/Tx-Resposta caindo N dias seguidos)."""
     out = []
     cur = start
     while cur <= end:
@@ -185,7 +185,7 @@ def periodo_payload(meta: list[dict], leads: list[dict], today, start, end, key,
         "range": {"start": start.strftime("%Y-%m-%d"), "end": end.strftime("%Y-%m-%d")},
         "totais": totais_dict(cur),
         # Série diária AGREGADA do período (não por estrutura) — só a base p/ o
-        # Claude ver tendência geral (CPM subindo / Tx-MQL caindo N dias). Limitada
+        # Claude ver tendência geral (CPM subindo / Tx-Resposta caindo N dias). Limitada
         # aos últimos 60 dias com atividade p/ não inchar "todo período". A série
         # por campanha/conjunto/anúncio foi REMOVIDA de propósito: ela respondia por
         # ~75% do tamanho do arquivo (≈280k tokens) e ninguém a consome — o veredito
@@ -212,18 +212,16 @@ def periodo_payload(meta: list[dict], leads: list[dict], today, start, end, key,
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--conversas-file")
+    ap.add_argument("--pesquisa-file")
     ap.add_argument("--meta-file")
-    ap.add_argument("--sales-file")
     ap.add_argument("--leads-file")
     ap.add_argument("--out", default="build/relatorios_dados.json")
     args = ap.parse_args()
 
-    conversas_rows = bp.load_rows(bp.EXPORT_URL.format(sid=bp.SPREADSHEET_ID, gid=bp.GID_CONVERSAS), args.conversas_file)
-    meta_rows = bp.load_rows(bp.EXPORT_URL.format(sid=bp.SPREADSHEET_ID, gid=bp.GID_META), args.meta_file)
-    sales_rows = bp.load_rows(bp.EXPORT_URL.format(sid=bp.SPREADSHEET_ID, gid=bp.GID_SALES), args.sales_file)
-    leads_lp_rows = bp.load_rows(bp.EXPORT_URL.format(sid=bp.SPREADSHEET_ID, gid=bp.GID_LEADS), args.leads_file)
-    data = bp.process(conversas_rows, meta_rows, sales_rows, leads_lp_rows)
+    leads_rows = bp.load_rows(bp.EXPORT_URL.format(sid=bp.SPREADSHEET_ID, gid=bp.GID_LEADS), args.leads_file)
+    pesquisa_rows = bp.load_rows(bp.EXPORT_URL.format(sid=bp.SPREADSHEET_ID, gid=bp.GID_PESQUISA), args.pesquisa_file)
+    meta_rows = bp.load_rows(bp.EXPORT_URL.format(sid=bp.META_SPREADSHEET_ID, gid=bp.GID_META), args.meta_file)
+    data = bp.process(leads_rows, pesquisa_rows, meta_rows)
     leads, meta = data["leads"], data["meta"]
 
     now_brt = datetime.now(BRT)

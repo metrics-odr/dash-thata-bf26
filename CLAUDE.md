@@ -4,15 +4,14 @@
 > Ele carrega TODO o contexto necessário para continuar o trabalho sem depender
 > de mensagens anteriores. Mantenha-o atualizado.
 >
-> **Este é um TEMPLATE limpo.** Todos os valores específicos do cliente estão
-> marcados como `<<PREENCHER: descrição>>`. Siga o CHECKLIST abaixo para
-> configurar um cliente novo.
+> **Dashboard configurado para Thais Junqueira · Black Friday** (funil de captura,
+> sem MQL; indicador = Respostas da pesquisa). O CHECKLIST abaixo é do template original.
 
 ---
 
 ## ✅ CHECKLIST DE NOVO CLIENTE (fazer em ordem)
 
-Preencha cada `<<PREENCHER: …>>` do repositório. Ordem sugerida:
+Preencha cada marcador do repositório (já feito neste cliente). Ordem sugerida:
 
 1. **`build/build.py` — constantes do topo:**
    - `SPREADSHEET_ID` — ID da planilha central do Google Sheets do cliente.
@@ -69,24 +68,24 @@ puro + Chart.js via CDN) publicado no **GitHub Pages**, que cruza a lista de
 **Leads** com o gerenciador de mídia paga e se atualiza sozinho a cada ~30 min
 (build 100% na nuvem via GitHub Actions, disparado externamente pelo cron-job.org).
 
-- **URL pública:** `https://<<PREENCHER: owner do GitHub>>.github.io/<<PREENCHER: nome do repositório>>/`
+- **URL pública:** `https://metrics-odr.github.io/dash-thata-bf26/`
 - **Somente leitura** das planilhas. Nunca escrever de volta.
 
 ## Fontes de dados (Google Sheets)
 
-Spreadsheet ID: `<<PREENCHER: SPREADSHEET_ID>>` ("<<PREENCHER: nome da planilha central>>").
+Spreadsheet ID: `180jQVURZJ3ShvPC7w8RFusXo2vAEorIslQ0W7t29MIc` ("Leads Black Friday").
 
 | Aba | gid | Colunas usadas |
 |-----|-----|----------------|
-| **Conversas** (fonte principal — webhook de mensageria/WhatsApp) | `<<PREENCHER: GID_CONVERSAS>>` | `Data` · `Mensagem` · `Nome` · `Telefone` · coluna de MQL · `Campanha` · `Conjunto` · `Anúncio` · `Especialidades` |
-| **Leads** (legado — popup/form antigo, só contada) | `<<PREENCHER: GID_LEADS>>` | `Data` · `Nome` · `Email` · `Telefone` · coluna de MQL · `Especialidade` · `utm_*` · `MQL` · `Compra Detectada`/`Faturamento Detectado`/`Data Compra` |
-| **Meta Ads** | `<<PREENCHER: GID_META>>` | `Day` · `Ad ID` · `Campaign Name` · `Ad Set Name` · `Ad Name` · `Amount Spent` · `Impressions` · `Link Clicks` · `Landing Page Views` · `Content Views` · `Adds to Cart` · `Subscriptions` · `Subscribe Conversion Value` |
-| **New Subscriptions** (Compradores) | `<<PREENCHER: GID_SALES>>` | `Data` · `Nome` · `Email` · `Telefone` · `Produto` · `Oferta` · `Faturamento` · `Receita` · `Método de Pagamento` · `Campanha` · `Conjunto` · `Anúncio` · `UF` · `Cidade` · `Zip Code` · `Endereço` |
+| **Conversas** (fonte principal — webhook de mensageria/WhatsApp) | `—` | `Data` · `Mensagem` · `Nome` · `Telefone` · coluna de MQL · `Campanha` · `Conjunto` · `Anúncio` · `Especialidades` |
+| **Leads** (legado — popup/form antigo, só contada) | `0` | `Data` · `Nome` · `Email` · `Telefone` · coluna de MQL · `Especialidade` · `utm_*` · `MQL` · `Compra Detectada`/`Faturamento Detectado`/`Data Compra` |
+| **Meta Ads** | `0 (planilha 1bcunH6dCyD5DQyXxNemMrnbxw2OPqB2tP-1C5ImkCWY)` | `Day` · `Ad ID` · `Campaign Name` · `Ad Set Name` · `Ad Name` · `Amount Spent` · `Impressions` · `Link Clicks` · `Landing Page Views` · `Content Views` · `Adds to Cart` · `Subscriptions` · `Subscribe Conversion Value` |
+| **New Subscriptions** (Compradores) | `— (não se aplica)` | `Data` · `Nome` · `Email` · `Telefone` · `Produto` · `Oferta` · `Faturamento` · `Receita` · `Método de Pagamento` · `Campanha` · `Conjunto` · `Anúncio` · `UF` · `Cidade` · `Zip Code` · `Endereço` |
 
 URL de export CSV: `https://docs.google.com/spreadsheets/d/<ID>/export?format=csv&gid=<GID>`
 
 ### Regra de Lead Qualificado (MQL)
-Coluna de qualificação (<<PREENCHER: nome da coluna de MQL, ex. "É médico?">>) == "Sim".
+Coluna de qualificação (Respondeu a pesquisa (cruzamento Leads × Respostas da Pesquisa, gid 1452923248)) == "Sim".
 Lógica em `build.py` → `is_medico`. O gráfico "Leads por especialidade" (`app.js`,
 `renderGeralCore`) colore verde/cinza pelo mesmo critério, usando a coluna
 `Especialidades`/`Especialidade` como dimensão.
@@ -127,10 +126,10 @@ volta ao gasto sem imposto. Se o cliente tiver um fator diferente, ajuste
 `TAX_FACTOR`; se não houver imposto, use `TAX_FACTOR = 1.0`.
 
 ### Convenções de campanha (do cliente)
-Todas as campanhas usam o prefixo `<<PREENCHER: MAIN_PRODUCT_PREFIX>>`
+Todas as campanhas usam o prefixo `(sem prefixo)`
 (`MAIN_PRODUCT_PREFIX`), sem filtrar por sub-funil — mantém TODAS as campanhas
 no dashboard. Ajuste o prefixo e, se o cliente usar siglas de etapa
-(ex. `<<PREENCHER: siglas de etapa, se houver>>`), documente-as aqui. A Conversas
+(ex. `não há`), documente-as aqui. A Conversas
 já traz `Campanha`/`Conjunto`/`Anúncio` prontos (nomes idênticos ao
 `Campaign Name`/`Ad Set Name`/`Ad Name` do Meta Ads) — `build.py` só copia esses
 valores, sem precisar de UTM nessa aba.

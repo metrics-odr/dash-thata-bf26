@@ -61,18 +61,18 @@ def classify_campaigns(meta: list[dict], leads: list[dict], start: date, end: da
             cpmql_ref = w0["cpmql"] or w1["cpmql"]
             gasto_falta = f" (~{money(cpmql_ref * faltam)} de gasto no ritmo atual)" if cpmql_ref else ""
             tag, motivo = "observar", (
-                f"volume {w0['mqls']} MQL(s) &lt; volume mínimo amostral ({volume_min}); "
-                f"faltam {faltam} MQL(s){gasto_falta} para amostra suficiente."
+                f"volume {w0['mqls']} Resposta(s) &lt; volume mínimo amostral ({volume_min}); "
+                f"faltam {faltam} Resposta(s){gasto_falta} para amostra suficiente."
             )
         elif meta_cpmql is not None and w0["mqls"] == 0 and w0["cpl"] is not None:
             tag, motivo = "corte", (
                 f"volume suficiente, zero conversão qualificada e CPL {money(w0['cpl'])} acima "
-                f"do teto por {n_dias_corte}+ dias consecutivos (referência: meta CPMQL {money(meta_cpmql)})."
+                f"do teto por {n_dias_corte}+ dias consecutivos (referência: meta Custo/Resp. {money(meta_cpmql)})."
             )
         elif (w0["txmql"] is not None and w1["txmql"] is not None and w2["txmql"] is not None
               and w0["txmql"] < w1["txmql"] < w2["txmql"]):
             tag, motivo = "otimiza", (
-                f"Tx‑MQL caindo 2 janelas seguidas ({pct(w2['txmql'])} → {pct(w1['txmql'])} → "
+                f"Tx. resposta caindo 2 janelas seguidas ({pct(w2['txmql'])} → {pct(w1['txmql'])} → "
                 f"{pct(w0['txmql'])}); hipótese: fadiga de criativo/saturação de público/frequência "
                 f"alta — investigar antes de cortar."
             )
@@ -85,11 +85,11 @@ def classify_campaigns(meta: list[dict], leads: list[dict], start: date, end: da
         elif (w0["txmql"] is not None and w1["txmql"] is not None
               and w0["txmql"] >= w1["txmql"] * 0.95):
             tag, motivo = "escala", (
-                f"volume {w0['mqls']} MQL(s) ≥ volume mínimo amostral ({volume_min}) e Tx‑MQL estável/subindo "
+                f"volume {w0['mqls']} Resposta(s) ≥ volume mínimo amostral ({volume_min}) e Tx. resposta estável/subindo "
                 f"({pct(w1['txmql'])} → {pct(w0['txmql'])}) na janela anterior."
             )
         else:
-            tag, motivo = "observar", "volume suficiente mas sem 2 janelas comparáveis de Tx‑MQL/CPL ainda."
+            tag, motivo = "observar", "volume suficiente mas sem 2 janelas comparáveis de Tx. resposta/CPL ainda."
         out.append((camp, tag, motivo, w0))
     out.sort(key=lambda x: -x[3]["mqls"])
     return out
@@ -106,7 +106,7 @@ def quadro1_resumo(label: str, cur: dict, saude: dict, variacao: dict, metodo: s
         + (f" {saude['motivo']}" if saude["motivo"] else "")
     )
     status_metas = (
-        f"Status das metas: CPMQL — {meta_status('CPMQL', meta_cpmql)}; "
+        f"Status das metas: Custo/Resp. — {meta_status('Custo/Resp.', meta_cpmql)}; "
         f"CAC — {meta_status('CAC', meta_cac)} (dados de venda ainda não conectados)."
     )
     mudancas = [f"{m.upper()}: {money(v['atual']) if m in ('spend','cpl','cpm','cpmql') else v['atual']} "
@@ -120,8 +120,8 @@ def quadro1_resumo(label: str, cur: dict, saude: dict, variacao: dict, metodo: s
         f"<p>{nota_txt}</p>",
         f"<p>{status_metas}</p>",
         f"<p><b>{label}:</b> gasto {money(cur['spend'])} · leads {num(cur['leads'])} · "
-        f"MQLs {num(cur['mqls'])} · Tx‑MQL {pct(cur['txmql'])} · CPL {money(cur['cpl'])} · "
-        f"CPA/CPMQL {money(cur['cpmql'])}.</p>",
+        f"Respostas {num(cur['mqls'])} · Tx. resposta {pct(cur['txmql'])} · CPL {money(cur['cpl'])} · "
+        f"CPA/Custo/Resp. {money(cur['cpmql'])}.</p>",
         f"<p><b>Vs. período anterior</b> ({metodo}):</p>",
         "<ul>" + ("".join(f"<li>{x}</li>" for x in mudancas) if mudancas else
                    "<li>Nenhuma variação materialmente relevante (≥10% ou ≥3pp) frente ao período anterior.</li>") + "</ul>",
@@ -145,15 +145,15 @@ def quadro2_diagnostico(cur: dict, variacao: dict, volume_min: int) -> str:
         cpmql_ref = cur["cpmql"] or 0
         gasto_estimado = cpmql_ref * faltam_mqls if cpmql_ref else None
         partes.append(
-            f"<p><b>Amostra insuficiente:</b> {num(cur['mqls'])} MQL(s) no período, abaixo do volume "
-            f"mínimo amostral ({volume_min}). Faltam {faltam_mqls} MQL(s)"
+            f"<p><b>Amostra insuficiente:</b> {num(cur['mqls'])} Resposta(s) no período, abaixo do volume "
+            f"mínimo amostral ({volume_min}). Faltam {faltam_mqls} Resposta(s)"
             + (f" (~{money(gasto_estimado)} de gasto no ritmo atual)" if gasto_estimado else "")
             + " para virar amostra confiável — nenhuma conclusão de qualidade deve ser tirada ainda.</p>"
         )
     else:
         partes.append(
-            f"<p><b>Etapas com leitura confiável:</b> volume de {num(cur['mqls'])} MQL(s) já é amostra "
-            f"suficiente (≥ {volume_min}); Tx‑MQL {pct(cur['txmql'])} e CPA/CPMQL {money(cur['cpmql'])} "
+            f"<p><b>Etapas com leitura confiável:</b> volume de {num(cur['mqls'])} Resposta(s) já é amostra "
+            f"suficiente (≥ {volume_min}); Tx. resposta {pct(cur['txmql'])} e CPA/Custo/Resp. {money(cur['cpmql'])} "
             f"podem embasar decisão.</p>"
         )
 
@@ -168,16 +168,16 @@ def quadro2_diagnostico(cur: dict, variacao: dict, volume_min: int) -> str:
     if "cpl" in pioras and "cpm" in pioras:
         hipoteses.append("CPL subiu junto com CPM: provável leilão mais caro / saturação de público, não falha de criativo específico.")
     if "txmql" in pioras and "cpl" not in pioras:
-        hipoteses.append("Tx‑MQL caiu sem CPL piorar: mídia pode estar atraindo público fora do ICP — revisar segmentação/criativo antes de cortar.")
+        hipoteses.append("Tx. resposta caiu sem CPL piorar: mídia pode estar atraindo público fora do ICP — revisar segmentação/criativo antes de cortar.")
     if "cpmql" in melhoras and "cpl" in pioras:
-        hipoteses.append("CPL subiu mas CPMQL melhorou: o clique mais caro está mais qualificado — não trocar o anúncio automaticamente.")
+        hipoteses.append("CPL subiu mas Custo/Resp. melhorou: o clique mais caro está mais qualificado — não trocar o anúncio automaticamente.")
     if not hipoteses:
         hipoteses.append("Sem sinal cruzado suficiente entre etapas para levantar hipótese de gargalo específico neste período.")
     partes.append("<p><b>Gargalos e hipóteses:</b></p><ul>" + "".join(f"<li>{h}</li>" for h in hipoteses) + "</ul>")
 
     partes.append(
         "<p><b>Gargalo de dado (prioridade alta):</b> Agendamentos, Reuniões Realizadas, Vendas e "
-        "Faturamento não têm fonte conectada — o funil hoje só vai até MQL. Otimizar mídia sem essas "
+        "Faturamento não têm fonte conectada — o funil hoje só vai até Resposta. Otimizar mídia sem essas "
         "etapas é decisão às cegas (mede qualidade do lead, não comparecimento/venda real). Ação: "
         "conectar a lista do comercial ao dashboard (`build/app.js` já tem os campos "
         "`agendamentos`/`reunioes`/`vendas`/`fat` prontos para acender a UI sozinhos).</p>"
@@ -201,31 +201,31 @@ def quadro3_campeoes(por_campanha: list[dict], por_anuncio: list[dict], criativo
 
     partes = [
         f"<p><b>Campanha campeã de volume:</b> {camp_vol['campanha']} "
-        f"— {num(camp_vol['mqls'])} MQL(s), {num(camp_vol['leads'])} lead(s), gasto {money(camp_vol['spend'])}.</p>",
+        f"— {num(camp_vol['mqls'])} Resposta(s), {num(camp_vol['leads'])} lead(s), gasto {money(camp_vol['spend'])}.</p>",
     ]
     if camp_efic:
         partes.append(
             f"<p><b>Campanha campeã de eficiência:</b> {camp_efic['campanha']} "
-            f"— CPA/CPMQL {money(camp_efic['cpmql'])}, Tx‑MQL {pct(camp_efic['txmql'])} "
-            f"(considerar amostra: {num(camp_efic['mqls'])} MQL(s)).</p>"
+            f"— CPA/Custo/Resp. {money(camp_efic['cpmql'])}, Tx. resposta {pct(camp_efic['txmql'])} "
+            f"(considerar amostra: {num(camp_efic['mqls'])} Resposta(s)).</p>"
         )
     else:
-        partes.append("<p><b>Campanha campeã de eficiência:</b> nenhuma campanha com MQL suficiente para ranquear por CPA/CPMQL ainda.</p>")
+        partes.append("<p><b>Campanha campeã de eficiência:</b> nenhuma campanha com Resposta suficiente para ranquear por CPA/Custo/Resp. ainda.</p>")
 
     if ad_efic:
         partes.append(
             f"<p><b>Estrutura completa campeã:</b> campanha <b>{ad_efic['campanha']}</b> → "
             f"conjunto <b>{ad_efic['conjunto']}</b> → anúncio <b>{ad_efic['anuncio']}</b> "
-            f"— CPA/CPMQL {money(ad_efic['cpmql'])}, {num(ad_efic['mqls'])} MQL(s), gasto {money(ad_efic['spend'])}.</p>"
+            f"— CPA/Custo/Resp. {money(ad_efic['cpmql'])}, {num(ad_efic['mqls'])} Resposta(s), gasto {money(ad_efic['spend'])}.</p>"
         )
     else:
-        partes.append("<p><b>Estrutura completa campeã:</b> nenhuma ocorrência de anúncio com MQL suficiente ainda.</p>")
+        partes.append("<p><b>Estrutura completa campeã:</b> nenhuma ocorrência de anúncio com Resposta suficiente ainda.</p>")
 
-    partes.append("<p><b>Ranking de estruturas (campanha → conjunto → anúncio), por CPA/CPMQL (menor = melhor):</b></p><ul>")
+    partes.append("<p><b>Ranking de estruturas (campanha → conjunto → anúncio), por CPA/Custo/Resp. (menor = melhor):</b></p><ul>")
     for r in sorted(ads_com_mql, key=lambda x: x["cpmql"])[:10]:
         partes.append(
             f"<li>Campanha: {r['campanha']} · Conjunto: {r['conjunto']} · Anúncio: {r['anuncio']} "
-            f"— CPA/CPMQL {money(r['cpmql'])} · Tx‑MQL {pct(r['txmql'])} · MQLs {num(r['mqls'])} · gasto {money(r['spend'])}</li>"
+            f"— CPA/Custo/Resp. {money(r['cpmql'])} · Tx. resposta {pct(r['txmql'])} · Respostas {num(r['mqls'])} · gasto {money(r['spend'])}</li>"
         )
     partes.append("</ul>")
 
@@ -238,14 +238,14 @@ def quadro3_campeoes(por_campanha: list[dict], por_anuncio: list[dict], criativo
     for c in multi[:10]:
         linha = (
             f"<li>Anúncio: {c['anuncio']} — presente em {c['n_estruturas']} estruturas, "
-            f"CPA/CPMQL consolidado {money(c['cpmql'])}, {num(c['mqls'])} MQL(s) no total."
+            f"CPA/Custo/Resp. consolidado {money(c['cpmql'])}, {num(c['mqls'])} Resposta(s) no total."
         )
         if c["melhor_estrutura"] and c["pior_estrutura"]:
             linha += (
                 f" Melhor em: campanha {c['melhor_estrutura']['campanha']} / conjunto "
-                f"{c['melhor_estrutura']['conjunto']} (CPA/CPMQL {money(c['melhor_estrutura']['cpmql'])}). "
+                f"{c['melhor_estrutura']['conjunto']} (CPA/Custo/Resp. {money(c['melhor_estrutura']['cpmql'])}). "
                 f"Pior em: campanha {c['pior_estrutura']['campanha']} / conjunto "
-                f"{c['pior_estrutura']['conjunto']} (CPA/CPMQL {money(c['pior_estrutura']['cpmql'])}) — "
+                f"{c['pior_estrutura']['conjunto']} (CPA/Custo/Resp. {money(c['pior_estrutura']['cpmql'])}) — "
                 f"decisão deve ser POR OCORRÊNCIA, nunca corte global do criativo por causa de 1 estrutura fraca."
             )
         linha += "</li>"
@@ -269,7 +269,7 @@ def quadro4_acoes(camps: list[tuple], volume_min: int, n_dias_corte: int) -> str
     fazer_hoje = []
     if escalar:
         fazer_hoje.append(
-            f"Aumentar verba em +10–20% nas campanhas com volume e Tx‑MQL estável: "
+            f"Aumentar verba em +10–20% nas campanhas com volume e Tx. resposta estável: "
             f"{', '.join(c[0] for c in escalar[:3])} (ajustar no conjunto se ABO, na campanha se CBO — "
             f"confirmar o tipo de orçamento no Gerenciador de Anúncios antes de mexer)."
         )
@@ -285,11 +285,11 @@ def quadro4_acoes(camps: list[tuple], volume_min: int, n_dias_corte: int) -> str
     cortar_txt = [f"{c}: {motivo}" for c, tag, motivo, w0 in cortar]
     produzir_txt = [
         "Testar variação (novo gancho/oferta) a partir do anúncio campeão da estrutura eficiente do "
-        "Quadrante 3, em ABO com teto de teste de 3–4 dias; critério de sucesso: CPA/CPMQL ≤ referência atual."
+        "Quadrante 3, em ABO com teto de teste de 3–4 dias; critério de sucesso: CPA/Custo/Resp. ≤ referência atual."
     ]
     evitar_txt = [
         "Escalar com base em dados de 1 dia (hoje) isoladamente.",
-        "Cortar por oscilação isolada de CTR/CPM sem olhar CPA/CPMQL/CAC.",
+        "Cortar por oscilação isolada de CTR/CPM sem olhar CPA/Custo/Resp./CAC.",
         "Tratar corte de 1 ocorrência do anúncio como corte do criativo inteiro.",
     ]
 
@@ -303,8 +303,8 @@ def quadro4_acoes(camps: list[tuple], volume_min: int, n_dias_corte: int) -> str
         "<h4>Produzir / testar</h4>" + li(produzir_txt) +
         "<h4>Evitar</h4>" + li(evitar_txt) +
         f"<h4>Próxima revisão</h4><p>Gatilho: qualquer campanha mudando de tag (Observar→Escalar/Otimizar, "
-        f"Otimizar→Cortar/Escalar) conforme volume e Tx‑MQL. Prazo: revisar em 4 dias ou ~"
-        f"{money(400.0)} de gasto adicional, ou ao atingir o volume mínimo amostral ({volume_min} MQLs).</p>"
+        f"Otimizar→Cortar/Escalar) conforme volume e Tx. resposta. Prazo: revisar em 4 dias ou ~"
+        f"{money(400.0)} de gasto adicional, ou ao atingir o volume mínimo amostral ({volume_min} Respostas).</p>"
     )
 
 
@@ -322,8 +322,8 @@ def whatsapp_texto(wa: dict, destaques: list[str], acoes: list[str]) -> str:
         f"Conversão da LP: {wa['conv_lp']}",
         f"Leads: {wa['leads']}",
         f"CPL: {wa['cpl']}",
-        f"MQLs: {wa['mqls']}",
-        f"CPA/CPMQL: {wa['cpa_cpmql']}",
+        f"Respostas: {wa['mqls']}",
+        f"CPA/Custo/Resp.: {wa['cpa_cpmql']}",
         f"Vendas: {wa['vendas']}",
         f"Faturamento: {wa['faturamento']}",
         f"CAC: {wa['cac']}",
@@ -401,18 +401,16 @@ def build_period_payload(label: str, start: date, end: date, meta: list[dict], l
 # --------------------------------------------------------------------------- #
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--conversas-file")
+    ap.add_argument("--pesquisa-file")
     ap.add_argument("--meta-file")
-    ap.add_argument("--sales-file")
     ap.add_argument("--leads-file")
     ap.add_argument("--out", default="build/relatorios.json")
     args = ap.parse_args()
 
-    conversas_rows = bp.load_rows(bp.EXPORT_URL.format(sid=bp.SPREADSHEET_ID, gid=bp.GID_CONVERSAS), args.conversas_file)
-    meta_rows = bp.load_rows(bp.EXPORT_URL.format(sid=bp.SPREADSHEET_ID, gid=bp.GID_META), args.meta_file)
-    sales_rows = bp.load_rows(bp.EXPORT_URL.format(sid=bp.SPREADSHEET_ID, gid=bp.GID_SALES), args.sales_file)
-    leads_lp_rows = bp.load_rows(bp.EXPORT_URL.format(sid=bp.SPREADSHEET_ID, gid=bp.GID_LEADS), args.leads_file)
-    data = bp.process(conversas_rows, meta_rows, sales_rows, leads_lp_rows)
+    leads_rows = bp.load_rows(bp.EXPORT_URL.format(sid=bp.SPREADSHEET_ID, gid=bp.GID_LEADS), args.leads_file)
+    pesquisa_rows = bp.load_rows(bp.EXPORT_URL.format(sid=bp.SPREADSHEET_ID, gid=bp.GID_PESQUISA), args.pesquisa_file)
+    meta_rows = bp.load_rows(bp.EXPORT_URL.format(sid=bp.META_SPREADSHEET_ID, gid=bp.GID_META), args.meta_file)
+    data = bp.process(leads_rows, pesquisa_rows, meta_rows)
     leads, meta = data["leads"], data["meta"]
 
     now_brt = datetime.now(BRT)
