@@ -116,6 +116,17 @@ vendas ficaram sem anúncio de origem. **Não** usa as colunas `Compra Detectada
 / `Faturamento Detectado` já calculadas na planilha (decisão de projeto: cruzar
 do zero, mais robusto a erro de fórmula).
 
+### Moeda (USD → BRL)
+O gasto do Meta Ads na planilha está em **dólar**. O toggle **USD/BRL** da topbar (igual ao do
+`dash-thata-epn`) converte pela cotação ao vivo (frankfurter → open.er-api, cache 6h,
+fallback 5,05). A conversão fica em `taxf()` (`app.js`), que já multiplica todo gasto; `brl()`
+só troca o símbolo. Default: BRL. Os Insights gerados em Python seguem em USD.
+
+### Origem do lead (mídia paga × orgânico)
+Mídia paga = `UTM Source` de Meta (ex. `Meta-Ads_ig`); `UTM Medium/Campaign/Content` =
+conjunto/campanha/anúncio (nomes idênticos ao Meta Ads). Leads de `manychat`/`social`
+(campanha `AUTO-…`) são orgânicos.
+
 ### Imposto da mídia paga
 `TAX_FACTOR` em `build.py`, com **default `1.13806`** (13,806%) já configurado no
 template — aplica-se somente ao gasto de **Meta Ads**. O toggle "Imposto Meta"
