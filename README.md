@@ -1,13 +1,9 @@
-# Dashboard de Captura de Leads · <<PREENCHER: nome do cliente>>
+# Dashboard de Captura de Leads · Thais Junqueira
 
-Dashboard **100% na nuvem** do Funil de High Ticket de **<<PREENCHER: nome do
-cliente>>** que cruza a aba **Conversas** (leads via WhatsApp/mensageria) com o
-investimento de mídia paga (**Meta Ads**) e com a lista de **Compradores**,
-calcula os **Leads Qualificados (MQLs)** e as **Vendas/Faturamento** atribuídos
-por anúncio, e é publicada no **GitHub Pages**. Reconstrói sozinha a cada
+Dashboard **100% na nuvem** do funil **Black Friday** (lançamento meteórico com página de captura) de **Thais Junqueira**: cruza a aba **Leads** com o investimento de mídia paga (**Meta Ads**) e com as **Respostas da Pesquisa**, calcula **Respostas, Taxa de resposta e Custo por resposta**, e é publicada no **GitHub Pages**. Reconstrói sozinha a cada
 ~30 min, disparada pelo **cron-job.org** — sem depender de nenhum PC ligado.
 
-**URL pública:** `https://<<PREENCHER: owner do GitHub>>.github.io/<<PREENCHER: nome do repositório>>/`
+**URL pública:** `https://metrics-odr.github.io/dash-thata-bf26/`
 
 ---
 
@@ -23,20 +19,20 @@ por anúncio, e é publicada no **GitHub Pages**. Reconstrói sozinha a cada
 
 ## Critério de Lead Qualificado (MQL)
 
-Coluna de qualificação do cliente (<<PREENCHER: nome da coluna de MQL, ex. "É médico?">>)
+Coluna de qualificação do cliente (Respondeu a pesquisa (cruzamento Leads × Respostas da Pesquisa, gid 1452923248))
 == "Sim". Lógica em `build.py` → `is_medico` (renomeie/ajuste ao critério do cliente).
 
 ## Fontes de dados (somente leitura)
 
-Planilha central `<<PREENCHER: nome da planilha central>>`
-(`<<PREENCHER: SPREADSHEET_ID>>`):
+Planilha central `Leads Black Friday`
+(`180jQVURZJ3ShvPC7w8RFusXo2vAEorIslQ0W7t29MIc`):
 
 | Aba | gid | Uso |
 |-----|-----|-----|
-| Conversas (fonte principal) | `<<PREENCHER: GID_CONVERSAS>>` | fonte **principal** de leads (webhook/mensageria) — usada em todos os gráficos/cards/tabelas |
-| Leads (legado) | `<<PREENCHER: GID_LEADS>>` | popup/form antigo — só contada (total), não entra em cálculo algum |
-| Meta Ads | `<<PREENCHER: GID_META>>` | gasto, impressões, cliques |
-| New Subscriptions (Compradores) | `<<PREENCHER: GID_SALES>>` | cruzada por telefone com a Conversas → Vendas/Faturamento por anúncio |
+| Conversas (fonte principal) | `—` | fonte **principal** de leads (webhook/mensageria) — usada em todos os gráficos/cards/tabelas |
+| Leads (legado) | `0` | popup/form antigo — só contada (total), não entra em cálculo algum |
+| Meta Ads | `0 (planilha 1bcunH6dCyD5DQyXxNemMrnbxw2OPqB2tP-1C5ImkCWY)` | gasto, impressões, cliques |
+| New Subscriptions (Compradores) | `— (não se aplica)` | cruzada por telefone com a Conversas → Vendas/Faturamento por anúncio |
 
 O build lê essas abas via **export CSV público** (`.../export?format=csv&gid=...`).
 **Nada é escrito de volta** nas planilhas.

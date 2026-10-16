@@ -231,7 +231,7 @@ def funnel_health(cur: dict, baseline: dict, meta_cpmql, meta_cac,
     # Conversão da página: sem fonte de Page Views/ConvLP conectada ao dashboard.
     sub["conversao_pagina"] = None
 
-    # Qualificação: TxMQL/CPMQL vs. meta (se definida) ou vs. baseline da conta.
+    # Qualificação: TxResposta/Custo/Resp. vs. meta (se definida) ou vs. baseline da conta.
     if cur.get("cpmql") is not None:
         ref = meta_cpmql if meta_cpmql is not None else baseline.get("cpmql")
         if ref:
@@ -245,7 +245,7 @@ def funnel_health(cur: dict, baseline: dict, meta_cpmql, meta_cac,
     # Vendas: sem fonte comercial (agendamentos/reuniões/vendas) conectada.
     sub["vendas"] = None
 
-    # Consistência: quanto a Tx-MQL varia entre as janelas de amostra (7/14/30d)
+    # Consistência: quanto a Tx-Resposta varia entre as janelas de amostra (7/14/30d)
     # — baixa variação = leitura mais confiável entre janelas.
     txmqls = [w["txmql"] for w in sample_windows if w.get("txmql") is not None]
     if len(txmqls) >= 2 and max(txmqls) > 0:
@@ -254,7 +254,7 @@ def funnel_health(cur: dict, baseline: dict, meta_cpmql, meta_cac,
     else:
         sub["consistencia"] = None
 
-    # Confiabilidade dos dados: volume de MQLs no período vs. volume mínimo
+    # Confiabilidade dos dados: volume de Respostas no período vs. volume mínimo
     # amostral configurado no painel da aba Relatório.
     mqls = cur.get("mqls") or 0
     sub["confiabilidade_dados"] = round(_clamp(10 * mqls / volume_min if volume_min else 10), 1)
