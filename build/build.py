@@ -39,11 +39,11 @@ import urllib.error
 import urllib.request
 from datetime import datetime, timezone, timedelta
 
-SPREADSHEET_ID = "180jQVURZJ3ShvPC7w8RFusXo2vAEorIslQ0W7t29MIc"        # planilha de Leads + Pesquisa
-META_SPREADSHEET_ID = "1bcunH6dCyD5DQyXxNemMrnbxw2OPqB2tP-1C5ImkCWY"   # planilha do Meta Ads
-GID_LEADS = "0"             # aba Leads (fonte principal)
-GID_PESQUISA = "1452923248"  # aba Respostas da Pesquisa
-GID_META = "0"              # aba Meta Ads (na planilha META_SPREADSHEET_ID)
+SPREADSHEET_ID = "1bcunH6dCyD5DQyXxNemMrnbxw2OPqB2tP-1C5ImkCWY"   # "Thata | BF26 | Planilha Central" (Leads + Pesquisa + Meta Ads)
+META_SPREADSHEET_ID = SPREADSHEET_ID   # tudo na mesma planilha
+GID_LEADS = "316997495"      # aba Leads (fonte principal)
+GID_PESQUISA = "1989575038"  # aba Pesquisa (respostas)
+GID_META = "0"               # aba Meta Ads
 EXPORT_URL = "https://docs.google.com/spreadsheets/d/{sid}/export?format=csv&gid={gid}"
 
 # Identificação do cliente/conta (usada só em textos/relatórios — não afeta o cruzamento de dados).
@@ -324,6 +324,8 @@ def process(leads_rows, pesquisa_rows, meta_rows):
         {"phone": ["telefone", "whatsapp", "celular", "phone"], "email": ["email", "e-mail"]},
         {},
     )
+    print(f"  [diag] Leads cabecalho   : {lheader}\n  [diag] Leads colunas     : { {k: (lheader[v] if v is not None and v < len(lheader) else None) for k, v in lidx.items()} }", file=sys.stderr)
+    print(f"  [diag] Pesquisa cabecalho: {pheader}\n  [diag] Pesquisa colunas  : { {k: (pheader[v] if v is not None and v < len(pheader) else None) for k, v in pidx.items()} }", file=sys.stderr)
     resp_emails, resp_phones = set(), set()
     for row in pesquisa_rows[1:]:
         if not any((c or "").strip() for c in row):
@@ -382,6 +384,7 @@ def process(leads_rows, pesquisa_rows, meta_rows):
         {"day": 0, "campaign": 2, "adset": 3, "ad": 4, "spent": 5, "impr": 6, "clicks": 7, "leads": None, "pv": 8},
     )
 
+    print(f"  [diag] Meta cabecalho    : {mheader}\n  [diag] Meta colunas      : { {k: (mheader[v] if v is not None and v < len(mheader) else None) for k, v in midx.items()} }", file=sys.stderr)
     meta = []
     # Anúncio (nome) -> 1 permalink do criativo. "Qualquer um correlato" ao
     # anúncio serve (o mesmo criativo pode rodar em vários dias/conjuntos);
