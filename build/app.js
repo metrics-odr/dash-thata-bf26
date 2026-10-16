@@ -7,7 +7,10 @@ const TAX = B.tax_factor || 1.0;
 const nf0=new Intl.NumberFormat('pt-BR',{maximumFractionDigits:0});
 const nf1=new Intl.NumberFormat('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1});
 const nf2=new Intl.NumberFormat('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
-const brl=v=>(v==null||!isFinite(v))?'-':'R$ '+nf2.format(v);
+const nf4=new Intl.NumberFormat('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:4});
+/* O gasto (Meta Ads) vem em USD na planilha. A conversao para a moeda exibida e'
+   feita em taxf() (que ja multiplica TODO gasto); aqui so' o simbolo. */
+const brl=v=>(v==null||!isFinite(v))?'-':(STATE.currency==='usd'?'US$ ':'R$ ')+nf2.format(v);
 const pct=v=>(v==null||!isFinite(v))?'-':nf2.format(v*100)+'%';
 const intf=v=>(v==null||!isFinite(v))?'-':nf0.format(v);
 const numf=v=>(v==null||!isFinite(v))?'-':nf1.format(v);
@@ -25,12 +28,48 @@ const TODAY = B.today || B.date_max;
 
 /* ---------------- STATE ---------------- */
 const STATE = {
-  page:'geral', from:(()=>{const [y,m]=TODAY.split('-'); return `${y}-${m}-01`;})(), to:TODAY, preset:'mes', tax:true,
+  page:'geral', from:B.date_min, to:B.date_max, preset:'todo', tax:true,
+  currency: (()=>{try{return localStorage.getItem('dm_currency')||'brl';}catch(e){return 'brl';}})(),
   selDays:new Set(),
   mSelC:new Set(), mSelA:new Set(), mSelAd:new Set(),
   sort:{}, colw: JSON.parse(localStorage.getItem('dm_colw')||'{}'),
 };
-const taxf = ()=> STATE.tax ? TAX : 1;
+const taxf = ()=> (STATE.tax ? TAX : 1) * (STATE.currency==='usd' ? 1 : (FX_RATE||FX_FALLBACK));
+
+/* ---------------- cotacao USD -> BRL (automatica) ---------------- */
+const FX_CACHE_KEY='dm_fx_usd_brl', FX_CACHE_MS=6*60*60*1000;
+const FX_FALLBACK=5.05;   /* so' ate a 1a cotacao carregar */
+let FX_RATE=null;
+(function loadFxCache(){
+  try{ const c=JSON.parse(localStorage.getItem(FX_CACHE_KEY)||'null');
+    if(c&&c.rate&&isFinite(c.rate)) FX_RATE=c.rate; }catch(e){}
+})();
+function curRateLabel(){
+  const el=document.getElementById('curRate'); if(!el) return;
+  el.textContent = FX_RATE ? ('1 USD = '+nf4.format(FX_RATE)+' BRL') : 'cotação indisponível';
+}
+function setFxRate(rate){ if(!rate||!isFinite(rate)) return;
+  FX_RATE=rate;
+  try{ localStorage.setItem(FX_CACHE_KEY, JSON.stringify({rate,ts:Date.now()})); }catch(e){}
+  curRateLabel();
+  if(STATE.currency==='brl' && typeof renderAll==='function') renderAll();
+}
+async function fetchFxRate(){
+  try{
+    const r=await fetch('https://api.frankfurter.app/latest?from=USD&to=BRL');
+    if(!r.ok) throw new Error('frankfurter '+r.status);
+    const j=await r.json(); const v=j&&j.rates&&j.rates.BRL;
+    if(!v) throw new Error('sem taxa');
+    setFxRate(v); return;
+  }catch(e){}
+  try{
+    const r=await fetch('https://open.er-api.com/v6/latest/USD');
+    if(!r.ok) throw new Error('er-api '+r.status);
+    const j=await r.json(); const v=j&&j.rates&&j.rates.BRL;
+    if(v) setFxRate(v);
+  }catch(e){}
+}
+fetchFxRate();
 
 /* active date test: selDays override the De/Até range */
 function dateActive(d){
@@ -1072,7 +1111,7 @@ const PRESETS=[
   ['30d','30 dias',()=>[addDays(TODAY,-29),TODAY]],
   ['mes','Este mês',()=>{const [y,m]=TODAY.split('-');return [`${y}-${m}-01`,TODAY];}],
   ['mespass','Mês passado',()=>{const dt=new Date(TODAY+'T00:00:00');const f=new Date(dt.getFullYear(),dt.getMonth()-1,1);const l=new Date(dt.getFullYear(),dt.getMonth(),0);return [dstr(f),dstr(l)];}],
-  ['todo','Todo período',()=>[B.date_min,B.date_max]],
+  ['todo','Máximo',()=>[B.date_min,B.date_max]],
 ];
 /* rótulo do botão de período — mostra o intervalo aplicado dentro do próprio botão */
 function syncDateInputs(){
@@ -1156,7 +1195,7 @@ function setPage(p){ STATE.page=p;
   document.getElementById('page-geral').classList.toggle('active',p==='geral');
   document.getElementById('page-meta').classList.toggle('active',p==='meta');
   document.getElementById('page-rel').classList.toggle('active',p==='rel');
-  document.getElementById('ptitle').textContent = p==='meta'?'Captura Meta Ads':(p==='rel'?'Relatório':'Visão Geral de Leads');
+  document.getElementById('ptitle').textContent = p==='meta'?'Captura Meta Ads':(p==='rel'?'Relatório':'Visão Geral');
   document.getElementById('navToggle').checked=false;
   history.replaceState(null,'', p==='meta'?'#meta':(p==='rel'?'#rel':'#geral'));
   renderAll();
@@ -1168,6 +1207,16 @@ applyTheme();
 document.getElementById('themeBtn').addEventListener('click',()=>{ const dark=document.documentElement.getAttribute('data-theme')==='dark'; localStorage.setItem('dm_theme',dark?'light':'dark'); applyTheme(); renderAll(); });
 
 document.querySelectorAll('.nav-item').forEach(n=>n.addEventListener('click',()=>setPage(n.dataset.page)));
+function syncCur(){
+  document.getElementById('curUsdBtn').classList.toggle('active',STATE.currency==='usd');
+  document.getElementById('curBrlBtn').classList.toggle('active',STATE.currency==='brl');
+  curRateLabel();
+}
+['curUsdBtn','curBrlBtn'].forEach(id=>document.getElementById(id).addEventListener('click',function(){
+  STATE.currency=this.dataset.cur; try{localStorage.setItem('dm_currency',STATE.currency);}catch(e){}
+  syncCur(); renderAll();
+}));
+syncCur();
 document.getElementById('taxToggle').addEventListener('click',function(){ STATE.tax=!STATE.tax; this.classList.toggle('on',STATE.tax); renderAll(); });
 /* seletor de período: abre/fecha popover, aplicar/cancelar, fechar ao clicar fora/Esc */
 document.getElementById('periodBtn').addEventListener('click',e=>{ e.stopPropagation(); ppIsOpen()?ppClose():ppOpen(); });
@@ -1176,7 +1225,7 @@ document.getElementById('ppCancel').addEventListener('click',ppClose);
 document.getElementById('periodPop').addEventListener('click',e=>e.stopPropagation());
 document.addEventListener('click',()=>{ if(ppIsOpen()) ppClose(); });
 document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&ppIsOpen()) ppClose(); });
-document.getElementById('clearBtn').addEventListener('click',()=>{ STATE.mSelC.clear();STATE.mSelA.clear();STATE.mSelAd.clear();STATE.selDays.clear(); applyPreset('mes'); });
+document.getElementById('clearBtn').addEventListener('click',()=>{ STATE.mSelC.clear();STATE.mSelA.clear();STATE.mSelAd.clear();STATE.selDays.clear(); applyPreset('todo'); });
 document.getElementById('refreshBtn').addEventListener('click',function(){ this.classList.add('loading'); location.href=location.pathname+'?t='+Date.now()+location.hash; });
 
 /* painel de Metas & parâmetros — edita ao vivo, salva em localStorage e recolore

@@ -313,6 +313,7 @@ def process(leads_rows, pesquisa_rows, meta_rows):
         lheader,
         {"created": ["data", "created", "timestamp", "carimbo"], "phone": ["telefone", "whatsapp", "celular", "phone"],
          "email": ["email", "e-mail"], "name": ["nome", "name"],
+         "source": ["utm source", "utm_source"],
          "campaign": ["utm campaign", "utm_campaign", "campanha", "campaign"],
          "adset": ["utm medium", "utm_medium", "conjunto", "adset"],
          "ad": ["utm content", "utm_content", "anuncio", "ad"],
@@ -343,8 +344,13 @@ def process(leads_rows, pesquisa_rows, meta_rows):
         if not any((c or "").strip() for c in row) or is_test_lead(" ".join(str(c) for c in row)):
             continue
         campaign_raw = cell(row, lidx["campaign"])
-        campaign_valid = valid_utm(campaign_raw)
+        source_raw = norm(cell(row, lidx["source"]))
+        # Midia paga = UTM Source de Meta (ex. "Meta-Ads_ig"). Leads de manychat/social
+        # (campanha "AUTO-...") sao ORGANICOS, mesmo tendo campanha preenchida.
+        campaign_valid = valid_utm(campaign_raw) and ("meta" in source_raw or "facebook" in source_raw
+                                                       or source_raw.endswith(("_ig", "_fb")))
         src = "meta" if campaign_valid else "org"
+        plat = "ig" if source_raw.endswith("_ig") or "instagram" in source_raw else ("fb" if campaign_valid else "—")
         em = norm(cell(row, lidx["email"]))
         ph = canon_phone(cell(row, lidx["phone"]))
         # Respondeu = e-mail OU telefone do lead aparece na aba de Pesquisa.
@@ -354,7 +360,7 @@ def process(leads_rows, pesquisa_rows, meta_rows):
         leads.append({
             "d": parse_date(cell(row, lidx["created"])),
             "src": src,
-            "plat": "ig" if src == "meta" else "—",
+            "plat": plat,
             "camp": campaign_raw if campaign_valid else "(sem campanha)",
             "adset": cell(row, lidx["adset"]) or "(sem conjunto)" if campaign_valid else "(sem conjunto)",
             "ad": cell(row, lidx["ad"]) or "(sem anúncio)" if campaign_valid else "(sem anúncio)",
