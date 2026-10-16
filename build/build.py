@@ -419,6 +419,9 @@ def process(leads_rows, pesquisa_rows, meta_rows):
         lv = [l[k] for l in leads if l["src"] == "meta"]
         hit = sum(1 for v in lv if v in mv)
         print(f"  [diag] leads Meta com {name} existente no Meta Ads: {hit}/{len(lv)}", file=sys.stderr)
+        from collections import Counter
+        print(f"  [diag]   {name} nos Leads (top): {Counter(lv).most_common(6)}", file=sys.stderr)
+        print(f"  [diag]   {name} no Meta Ads (amostra): {sorted(mv)[:6]}", file=sys.stderr)
 
     dates = sorted({d for d in (
         [l["d"] for l in leads if l["d"]] + [m["d"] for m in meta if m["d"]] + [s["d"] for s in sales if s["d"]]
