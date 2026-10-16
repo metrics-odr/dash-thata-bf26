@@ -19,19 +19,19 @@ Dashboard **100% na nuvem** do funil **Black Friday** (lançamento meteórico co
 
 ## Critério de Lead Qualificado (MQL)
 
-Coluna de qualificação do cliente (Respondeu a pesquisa (cruzamento Leads × Respostas da Pesquisa, gid 1452923248))
+Coluna de qualificação do cliente (Respondeu a pesquisa (cruzamento Leads × Respostas da Pesquisa, gid 1989575038))
 == "Sim". Lógica em `build.py` → `is_medico` (renomeie/ajuste ao critério do cliente).
 
 ## Fontes de dados (somente leitura)
 
-Planilha central `Leads Black Friday`
-(`180jQVURZJ3ShvPC7w8RFusXo2vAEorIslQ0W7t29MIc`):
+Planilha central `Thata | BF26 | Planilha Central`
+(`1bcunH6dCyD5DQyXxNemMrnbxw2OPqB2tP-1C5ImkCWY`):
 
 | Aba | gid | Uso |
 |-----|-----|-----|
 | Conversas (fonte principal) | `—` | fonte **principal** de leads (webhook/mensageria) — usada em todos os gráficos/cards/tabelas |
-| Leads (legado) | `0` | popup/form antigo — só contada (total), não entra em cálculo algum |
-| Meta Ads | `0 (planilha 1bcunH6dCyD5DQyXxNemMrnbxw2OPqB2tP-1C5ImkCWY)` | gasto, impressões, cliques |
+| Leads | `316997495` | popup/form antigo — só contada (total), não entra em cálculo algum |
+| Meta Ads | `0` | gasto, impressões, cliques |
 | New Subscriptions (Compradores) | `— (não se aplica)` | cruzada por telefone com a Conversas → Vendas/Faturamento por anúncio |
 
 O build lê essas abas via **export CSV público** (`.../export?format=csv&gid=...`).

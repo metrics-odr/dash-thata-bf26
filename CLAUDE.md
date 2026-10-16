@@ -73,19 +73,19 @@ puro + Chart.js via CDN) publicado no **GitHub Pages**, que cruza a lista de
 
 ## Fontes de dados (Google Sheets)
 
-Spreadsheet ID: `180jQVURZJ3ShvPC7w8RFusXo2vAEorIslQ0W7t29MIc` ("Leads Black Friday").
+Spreadsheet ID: `1bcunH6dCyD5DQyXxNemMrnbxw2OPqB2tP-1C5ImkCWY` ("Thata | BF26 | Planilha Central").
 
 | Aba | gid | Colunas usadas |
 |-----|-----|----------------|
 | **Conversas** (fonte principal — webhook de mensageria/WhatsApp) | `—` | `Data` · `Mensagem` · `Nome` · `Telefone` · coluna de MQL · `Campanha` · `Conjunto` · `Anúncio` · `Especialidades` |
-| **Leads** (legado — popup/form antigo, só contada) | `0` | `Data` · `Nome` · `Email` · `Telefone` · coluna de MQL · `Especialidade` · `utm_*` · `MQL` · `Compra Detectada`/`Faturamento Detectado`/`Data Compra` |
-| **Meta Ads** | `0 (planilha 1bcunH6dCyD5DQyXxNemMrnbxw2OPqB2tP-1C5ImkCWY)` | `Day` · `Ad ID` · `Campaign Name` · `Ad Set Name` · `Ad Name` · `Amount Spent` · `Impressions` · `Link Clicks` · `Landing Page Views` · `Content Views` · `Adds to Cart` · `Subscriptions` · `Subscribe Conversion Value` |
+| **Leads** | `316997495` | `Data` · `Nome` · `Email` · `Telefone` · coluna de MQL · `Especialidade` · `utm_*` · `MQL` · `Compra Detectada`/`Faturamento Detectado`/`Data Compra` |
+| **Meta Ads** | `0` | `Day` · `Ad ID` · `Campaign Name` · `Ad Set Name` · `Ad Name` · `Amount Spent` · `Impressions` · `Link Clicks` · `Landing Page Views` · `Content Views` · `Adds to Cart` · `Subscriptions` · `Subscribe Conversion Value` |
 | **New Subscriptions** (Compradores) | `— (não se aplica)` | `Data` · `Nome` · `Email` · `Telefone` · `Produto` · `Oferta` · `Faturamento` · `Receita` · `Método de Pagamento` · `Campanha` · `Conjunto` · `Anúncio` · `UF` · `Cidade` · `Zip Code` · `Endereço` |
 
 URL de export CSV: `https://docs.google.com/spreadsheets/d/<ID>/export?format=csv&gid=<GID>`
 
 ### Regra de Lead Qualificado (MQL)
-Coluna de qualificação (Respondeu a pesquisa (cruzamento Leads × Respostas da Pesquisa, gid 1452923248)) == "Sim".
+Coluna de qualificação (Respondeu a pesquisa (cruzamento Leads × Respostas da Pesquisa, gid 1989575038)) == "Sim".
 Lógica em `build.py` → `is_medico`. O gráfico "Leads por especialidade" (`app.js`,
 `renderGeralCore`) colore verde/cinza pelo mesmo critério, usando a coluna
 `Especialidades`/`Especialidade` como dimensão.
