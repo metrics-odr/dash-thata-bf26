@@ -313,9 +313,10 @@ def process(leads_rows, pesquisa_rows, meta_rows):
         lheader,
         {"created": ["data", "created", "timestamp", "carimbo"], "phone": ["telefone", "whatsapp", "celular", "phone"],
          "email": ["email", "e-mail"], "name": ["nome", "name"],
-         "campaign": ["utm_campaign", "campanha", "campaign"],
-         "adset": ["utm_medium", "utm_term", "conjunto", "adset"],
-         "ad": ["utm_content", "anuncio", "ad"]},
+         "campaign": ["utm campaign", "utm_campaign", "campanha", "campaign"],
+         "adset": ["utm medium", "utm_medium", "conjunto", "adset"],
+         "ad": ["utm content", "utm_content", "anuncio", "ad"],
+         "resp": ["respondeu pesquisa", "respondeu"]},
         {"created": 0, "name": 1, "email": 2, "phone": 3},
     )
     pheader = pesquisa_rows[0] if pesquisa_rows else []
@@ -338,7 +339,6 @@ def process(leads_rows, pesquisa_rows, meta_rows):
             resp_phones.add(ph)
 
     leads = []
-    seen_keys: set[str] = set()
     for row in leads_rows[1:]:
         if not any((c or "").strip() for c in row) or is_test_lead(" ".join(str(c) for c in row)):
             continue
@@ -348,7 +348,9 @@ def process(leads_rows, pesquisa_rows, meta_rows):
         em = norm(cell(row, lidx["email"]))
         ph = canon_phone(cell(row, lidx["phone"]))
         # Respondeu = e-mail OU telefone do lead aparece na aba de Pesquisa.
-        respondeu = (em in resp_emails) or (len(ph) >= 10 and ph in resp_phones)
+        # ... ou a coluna "Respondeu pesquisa?" da propria aba Leads marca Sim.
+        respondeu = (em in resp_emails) or (len(ph) >= 10 and ph in resp_phones) \
+            or norm(cell(row, lidx["resp"])) in ("sim", "s", "yes", "true", "1")
         leads.append({
             "d": parse_date(cell(row, lidx["created"])),
             "src": src,
@@ -411,6 +413,12 @@ def process(leads_rows, pesquisa_rows, meta_rows):
         })
 
     leads_lp_total = 0
+
+    for k, name in (("camp", "campanha"), ("adset", "conjunto"), ("ad", "anuncio")):
+        mv = {m[k] for m in meta}
+        lv = [l[k] for l in leads if l["src"] == "meta"]
+        hit = sum(1 for v in lv if v in mv)
+        print(f"  [diag] leads Meta com {name} existente no Meta Ads: {hit}/{len(lv)}", file=sys.stderr)
 
     dates = sorted({d for d in (
         [l["d"] for l in leads if l["d"]] + [m["d"] for m in meta if m["d"]] + [s["d"] for s in sales if s["d"]]
