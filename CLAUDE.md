@@ -128,13 +128,7 @@ conjunto/campanha/anúncio (nomes idênticos ao Meta Ads). Leads de `manychat`/`
 (campanha `AUTO-…`) são orgânicos.
 
 ### Imposto da mídia paga
-`TAX_FACTOR` em `build.py`, com **default `1.13806`** (13,806%) já configurado no
-template — aplica-se somente ao gasto de **Meta Ads**. O toggle "Imposto Meta"
-fica **ativo por padrão** (`STATE.tax=true` em `app.js`) e aplica o fator em
-todo o gasto de mídia paga/derivados (CPL, CPMQL, CAC etc.) via `taxf()`, que só
-multiplica `a.sp` (gasto do Meta Ads) — nunca outras fontes; desativar o toggle
-volta ao gasto sem imposto. Se o cliente tiver um fator diferente, ajuste
-`TAX_FACTOR`; se não houver imposto, use `TAX_FACTOR = 1.0`.
+Neste cliente **não há imposto**: `TAX_FACTOR = 1.0` e o toggle "Imposto Meta" foi removido da topbar.
 
 ### Convenções de campanha (do cliente)
 Todas as campanhas usam o prefixo `(sem prefixo)`
