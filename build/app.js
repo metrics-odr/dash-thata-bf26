@@ -507,7 +507,7 @@ function comboChart(id, d){
         tooltip:{callbacks:{label:c=>{const v=c.raw; return c.dataset.label+': '+(c.dataset.yAxisID==='y1'?brl(v):intf(v));}}}},
       scales:{x:{ticks:{color:mut,font:{size:10}},grid:{display:false}},
         y:{position:'left',ticks:{color:mut,font:{size:10}},grid:{color:gr},beginAtZero:true,title:{display:true,text:'Leads / Respostas',color:mut,font:{size:10}}},
-        y1:{position:'right',ticks:{color:mut,font:{size:10}},grid:{display:false},beginAtZero:true,title:{display:true,text:'R$',color:mut,font:{size:10}}}}}
+        y1:{position:'right',ticks:{color:mut,font:{size:10}},grid:{display:false},beginAtZero:true,title:{display:true,text:(STATE.currency==='usd'?'US$':'R$'),color:mut,font:{size:10}}}}}
   });
 }
 function hbar(id, items, valFn, colorFn, top, unit){
@@ -594,7 +594,7 @@ function mqlByDimChart(id, fL, fM, agg, dim, selSet){
           callbacks:{title:()=>'', label:c=>[c.dataset.label, (c.raw==null?'-':brl(c.raw))+' / Resposta']}}
       },
       scales:{x:{ticks:{color:mut,font:{size:9}},grid:{display:false}},
-        y:{ticks:{color:mut,font:{size:9},callback:v=>'R$'+nf0.format(v)},grid:{color:cgrid()},beginAtZero:true}}
+        y:{ticks:{color:mut,font:{size:9},callback:v=>(STATE.currency==='usd'?'US$':'R$')+nf0.format(v)},grid:{color:cgrid()},beginAtZero:true}}
     }
   });
   // painel de legenda HTML: quadrado da cor | nome completo (1 linha, nunca corta) | Custo/Resp.
@@ -633,7 +633,7 @@ function renderGeralCore(ids){
   const NA='<span class="na-tag">sem dado</span>';
   const s=salesOf(t);
   const steps=[
-    ['Gasto Total', brl(g), [], false, 'hl-gasto'],
+    ['Gasto Total', brl(g), [['Planilha (USD)','US$ '+nf2.format(t.sp)]], false, 'hl-gasto'],
     ['Impressões', intf(t.im), [['CPM',brl(dv.cpm)]]],
     ['Cliques', intf(t.cl), [['CTR',pct(dv.ctr)],['CPC',brl(dv.cpc)]]],
     ['Page Views', intf(t.pv), [['CR',pct(dv.cr)],['CPV',brl(dv.cpv)]]],
@@ -993,10 +993,9 @@ function dailyCells(x,d,isTotal){
 }
 
 /* ---------------- PAGE 2: Captura Meta Ads ---------------- */
-/* Mar04: considera TODOS os leads e TODO o gasto de todas as fontes de tráfego
-   (sem filtrar por atribuição). Hoje só há Meta; quando vier google/tiktok/orgânico
-   etc., já entram automaticamente. */
-function metaScope(ex){ let fL=leadsActive(), fM=metaActive(), fS=salesActive();
+/* Captura Meta Ads: só leads de MÍDIA PAGA (src==='meta', via UTM Source de Meta) e todo o
+   gasto do Meta. A Visão Geral continua com todos os leads (pagos + orgânicos). */
+function metaScope(ex){ let fL=leadsActive().filter(l=>l.src==='meta'), fM=metaActive(), fS=salesActive();
   if(ex!=='C'&&STATE.mSelC.size){ fL=fL.filter(r=>STATE.mSelC.has(r.camp)); fM=fM.filter(r=>STATE.mSelC.has(r.camp)); fS=fS.filter(r=>STATE.mSelC.has(r.camp)); }
   if(ex!=='A'&&STATE.mSelA.size){ fL=fL.filter(r=>STATE.mSelA.has(r.adset)); fM=fM.filter(r=>STATE.mSelA.has(r.adset)); fS=fS.filter(r=>STATE.mSelA.has(r.adset)); }
   if(ex!=='D'&&STATE.mSelAd.size){ fL=fL.filter(r=>STATE.mSelAd.has(r.ad)); fM=fM.filter(r=>STATE.mSelAd.has(r.ad)); fS=fS.filter(r=>STATE.mSelAd.has(r.ad)); }
@@ -1015,7 +1014,7 @@ function renderMeta(){
   const NA='<span class="na-tag">sem dado</span>';
   const s=salesOf(t);
   const steps=[
-    ['Gasto Total', brl(g), [], false, 'hl-gasto'],
+    ['Gasto Total', brl(g), [['Planilha (USD)','US$ '+nf2.format(t.sp)]], false, 'hl-gasto'],
     ['Impressões', intf(t.im), [['CPM',brl(dv.cpm)],['Frequência',NA]]],
     ['Cliques', intf(t.cl), [['CTR',pct(dv.ctr)],['CPC',brl(dv.cpc)]]],
     ['Page Views', intf(t.pv), [['CR',pct(dv.cr)],['CPV',brl(dv.cpv)]]],
