@@ -28,7 +28,7 @@ const TODAY = B.today || B.date_max;
 
 /* ---------------- STATE ---------------- */
 const STATE = {
-  page:'geral', from:B.date_min, to:B.date_max, preset:'todo', tax:true,
+  page:'geral', from:B.date_min, to:B.date_max, preset:'todo', tax:false,
   currency: (()=>{try{return localStorage.getItem('dm_currency')||'brl';}catch(e){return 'brl';}})(),
   selDays:new Set(),
   mSelC:new Set(), mSelA:new Set(), mSelAd:new Set(),
@@ -1217,7 +1217,6 @@ function syncCur(){
   syncCur(); renderAll();
 }));
 syncCur();
-document.getElementById('taxToggle').addEventListener('click',function(){ STATE.tax=!STATE.tax; this.classList.toggle('on',STATE.tax); renderAll(); });
 /* seletor de período: abre/fecha popover, aplicar/cancelar, fechar ao clicar fora/Esc */
 document.getElementById('periodBtn').addEventListener('click',e=>{ e.stopPropagation(); ppIsOpen()?ppClose():ppOpen(); });
 document.getElementById('ppApply').addEventListener('click',ppApply);

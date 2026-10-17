@@ -54,9 +54,7 @@ MAIN_PRODUCT = "Black Friday"
 MAIN_PRODUCT_PREFIX = ""   # sem prefixo: todas as campanhas entram no dashboard
 
 BRT = timezone(timedelta(hours=-3))   # horario de Brasilia (exibicao)
-TAX_FACTOR = 1.13806   # fator padrão de imposto/taxa sobre o gasto de mídia paga (Meta Ads) = 13,806%.
-                       # Default do template para toda nova dash criada a partir dele; ajuste apenas
-                       # se o cliente tiver um fator diferente, ou use 1.0 se não houver imposto.
+TAX_FACTOR = 1.0   # sem imposto neste cliente (toggle "Imposto Meta" removido da UI).
 
 # --------------------------------------------------------------------------- #
 # Regras da aba Relatório (Top/Piores anúncios)
