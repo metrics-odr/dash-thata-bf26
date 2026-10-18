@@ -208,6 +208,9 @@
   /* cabeçalho denso: fonte menor, sem espaçamento e podendo quebrar (não corta o nome) */
   table.dt.dt-fit thead th{font-size:10px; letter-spacing:0; white-space:normal; line-height:1.12; padding:6px 4px; vertical-align:bottom}
   table.dt.dt-fit thead th .rsz{display:none}   /* sem redimensionar quando é fit-to-width */
+  /* celular: espremer ~20 colunas em 100% da tela deixa os números ilegíveis — garante
+     largura mínima por coluna (--ncols, setada no renderTable) e o .tbl-wrap rola na horizontal */
+  @media(max-width:900px){ table.dt.dt-fit{min-width:calc(var(--ncols,12) * 66px)} }
   /* Donut de taxa de qualificação (Mar02) com rótulo central */
   .donut-wrap{position:relative; height:190px}
   .donut-center{position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; pointer-events:none}
