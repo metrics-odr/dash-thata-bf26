@@ -247,6 +247,7 @@ function renderTable(cfg){
     return `<td class="${c.type==='dim'?'dim':''}${stkCls(c)}" title="${isFirst?'Total Geral':esc(fmtStd(c.type,v))}">${isFirst?'Total Geral':fmt(c.type,v)}</td>`;
   }).join('')+'</tr></tfoot>'; }
   table.style.width=fit?'100%':totalW+'px';
+  table.style.setProperty('--ncols',cfg.cols.length);
   table.innerHTML=colgroup+thead+tbody+tfoot;
   const cols=table.querySelector('colgroup').children;
   // sort handlers
