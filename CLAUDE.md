@@ -118,8 +118,8 @@ do zero, mais robusto a erro de fórmula).
 
 ### Moeda (USD → BRL)
 O gasto do Meta Ads na planilha está em **dólar**. O toggle **USD/BRL** da topbar (igual ao do
-`dash-thata-epn`) converte pela cotação ao vivo (frankfurter → open.er-api, cache 6h,
-fallback 5,05). A conversão fica em `taxf()` (`app.js`), que já multiplica todo gasto; `brl()`
+`dash-thata-epn`) converte por uma **cotação fixa de R$ 5,10** (`FX_RATE` em `app.js`; sem
+consulta ao vivo). A conversão fica em `taxf()` (`app.js`), que já multiplica todo gasto; `brl()`
 só troca o símbolo. Default: BRL. Os Insights gerados em Python seguem em USD.
 
 ### Origem do lead (mídia paga × orgânico)
