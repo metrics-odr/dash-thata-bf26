@@ -34,42 +34,14 @@ const STATE = {
   mSelC:new Set(), mSelA:new Set(), mSelAd:new Set(),
   sort:{}, colw: JSON.parse(localStorage.getItem('dm_colw')||'{}'),
 };
-const taxf = ()=> (STATE.tax ? TAX : 1) * (STATE.currency==='usd' ? 1 : (FX_RATE||FX_FALLBACK));
+const taxf = ()=> (STATE.tax ? TAX : 1) * (STATE.currency==='usd' ? 1 : FX_RATE);
 
-/* ---------------- cotacao USD -> BRL (automatica) ---------------- */
-const FX_CACHE_KEY='dm_fx_usd_brl', FX_CACHE_MS=6*60*60*1000;
-const FX_FALLBACK=5.05;   /* so' ate a 1a cotacao carregar */
-let FX_RATE=null;
-(function loadFxCache(){
-  try{ const c=JSON.parse(localStorage.getItem(FX_CACHE_KEY)||'null');
-    if(c&&c.rate&&isFinite(c.rate)) FX_RATE=c.rate; }catch(e){}
-})();
+/* ---------------- cotacao USD -> BRL (fixa) ---------------- */
+const FX_RATE=5.10;   /* cotacao fixa definida pelo cliente */
 function curRateLabel(){
   const el=document.getElementById('curRate'); if(!el) return;
-  el.textContent = FX_RATE ? ('1 USD = '+nf4.format(FX_RATE)+' BRL') : 'cotação indisponível';
+  el.textContent = '1 USD = '+nf4.format(FX_RATE)+' BRL';
 }
-function setFxRate(rate){ if(!rate||!isFinite(rate)) return;
-  FX_RATE=rate;
-  try{ localStorage.setItem(FX_CACHE_KEY, JSON.stringify({rate,ts:Date.now()})); }catch(e){}
-  curRateLabel();
-  if(STATE.currency==='brl' && typeof renderAll==='function') renderAll();
-}
-async function fetchFxRate(){
-  try{
-    const r=await fetch('https://api.frankfurter.app/latest?from=USD&to=BRL');
-    if(!r.ok) throw new Error('frankfurter '+r.status);
-    const j=await r.json(); const v=j&&j.rates&&j.rates.BRL;
-    if(!v) throw new Error('sem taxa');
-    setFxRate(v); return;
-  }catch(e){}
-  try{
-    const r=await fetch('https://open.er-api.com/v6/latest/USD');
-    if(!r.ok) throw new Error('er-api '+r.status);
-    const j=await r.json(); const v=j&&j.rates&&j.rates.BRL;
-    if(v) setFxRate(v);
-  }catch(e){}
-}
-fetchFxRate();
 
 /* active date test: selDays override the De/Até range */
 function dateActive(d){
