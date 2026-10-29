@@ -90,31 +90,22 @@ Lógica em `build.py` → `is_medico`. O gráfico "Leads por especialidade" (`ap
 `renderGeralCore`) colore verde/cinza pelo mesmo critério, usando a coluna
 `Especialidades`/`Especialidade` como dimensão.
 
-### Vendas & Faturamento (cruzamento com Compradores)
-`build.py` → `build_sales_index()` lê a aba **New Subscriptions** e indexa por
-**telefone** (normalizado, só dígitos) → lista de compras **não agregada**,
-uma entrada por linha: `[{d, fat, receita}, ...]` (`d` = data real daquela
-compra). Em `process()`, as linhas da **Conversas** são ordenadas pela **data
-já parseada** (`parse_date`, não a string bruta) para achar a **1ª conversa**
-(mais antiga de fato) de cada telefone; essa conversa define **apenas**
-camp/adset/ad da venda (o anúncio que trouxe aquele contato) — nunca a data.
-Cada compra vira um registro próprio em `DATA.sales[]`
-(`{d, camp, adset, ad, vendas:1, fat, receita}`) com a **data real da compra**.
-No navegador, `salesActive()` (`app.js`) filtra `sales[]` pela mesma data ativa
-que `leadsActive()`/`metaActive()`, e os três arrays (`fL`/`fM`/`fS`) se
-propagam juntos em `buildAgg`/`daily`/`totals`.
-
-**TODA venda entra na dash** (regra geral: "todas as vendas entram na Visão
-Geral; só as atribuídas ao Meta entram na aba de mídia paga"). O cruzamento
-Compradores × Conversas usa `canon_phone()` — **chave canônica** = DDD +
-últimos 8 dígitos, robusta a **DDI "55"** presente/ausente e ao **9º dígito**
-do celular. Quando o telefone bate com uma conversa, a venda recebe
-camp/adset/ad daquela conversa. Quando **não** bate, a venda **ainda conta nos
-totais/Visão Geral**, porém como `(sem campanha)` / `src="org"` — some apenas da
-quebra por campanha do Meta. `log_unmatched_sales()` loga no build quantas
-vendas ficaram sem anúncio de origem. **Não** usa as colunas `Compra Detectada`
-/ `Faturamento Detectado` já calculadas na planilha (decisão de projeto: cruzar
-do zero, mais robusto a erro de fórmula).
+### Vendas & Faturamento (Black Vitalícia × Leads)
+Fonte: planilha de compradores de TODOS os produtos
+(`SALES_SPREADSHEET_ID` `1v3mc-Z3lUYzGGkyIIYdK9PL3M-O6cgIBTlUWHQDboGU`, gid `86137300`).
+`build.py` → `build_sales_list()` filtra só `SALES_PRODUCT` ("Black Vitalícia") com
+Status Completo/Aprovado; uma entrada por compra, na **data real da compra**.
+`attribute_sales()` cruza cada compra com a aba **Leads** por **e-mail** (minúsculo) **e**
+**telefone** (`canon_phone`: DDI 55 e 9º dígito ignorados → DDD + 8 últimos). Se mais de um
+lead bate, vale o 1º lead de **mídia paga** (senão o 1º de qualquer origem). O lead traz
+camp/conjunto/anúncio (nomes idênticos ao Meta Ads). Sem lead → a venda **continua nos
+totais** como `(sem campanha)` / `src="org"` (só some da quebra por campanha do Meta); o
+build loga as vendas sem lead.
+Valores: `fat` = "Valor bruto (BRL)"; se `#REF!` (compra em moeda estrangeira) converte
+"Valor compra (orig.)" por `FX_TO_BRL` (USD 5,10 · EUR 6,0 — ajustar se necessário).
+`receita` = "Fat. líquido (BRL)" (hoje `#REF!` na planilha) ou, na falta, "Fat. líquido (USD)"
+× 5,10. No navegador, `salesActive()` filtra `sales[]` pela data ativa e propaga em
+`buildAgg`/`daily`/`totals`. Teste local: `--sales-file compradores.csv`.
 
 ### Moeda (USD → BRL)
 O gasto do Meta Ads na planilha está em **dólar**. O toggle **USD/BRL** da topbar (igual ao do

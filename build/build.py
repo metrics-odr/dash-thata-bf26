@@ -44,6 +44,14 @@ META_SPREADSHEET_ID = SPREADSHEET_ID   # tudo na mesma planilha
 GID_LEADS = "316997495"      # aba Leads (fonte principal)
 GID_PESQUISA = "1989575038"  # aba Pesquisa (respostas)
 GID_META = "0"               # aba Meta Ads
+# Compradores de TODOS os produtos da Thais (planilha separada). Só as linhas do
+# produto SALES_PRODUCT entram na dash (cruzadas com os Leads por e-mail/telefone).
+SALES_SPREADSHEET_ID = "1v3mc-Z3lUYzGGkyIIYdK9PL3M-O6cgIBTlUWHQDboGU"
+GID_SALES = "86137300"
+SALES_PRODUCT = "Black Vitalícia"
+# Cotação p/ moeda estrangeira (a coluna "Valor bruto (BRL)" da planilha vem #REF!
+# nas compras fora do Brasil). USD usa a mesma cotação fixa do front (FX_RATE).
+FX_TO_BRL = {"BRL": 1.0, "USD": 5.10, "EUR": 6.0}
 EXPORT_URL = "https://docs.google.com/spreadsheets/d/{sid}/export?format=csv&gid={gid}"
 
 # Identificação do cliente/conta (usada só em textos/relatórios — não afeta o cruzamento de dados).
@@ -246,66 +254,104 @@ def cell(row, i):
 
 
 # --------------------------------------------------------------------------- #
-# Compradores ("New Subscriptions") -> indice por telefone
+# Compradores -> lista de compras do produto (SALES_PRODUCT)
 # --------------------------------------------------------------------------- #
-def build_sales_index(sales_rows):
-    """Le a aba de Compradores e devolve {telefone_normalizado: [{"d":..,"fat":..,"receita":..,"nm":..}, ...]},
-    UMA ENTRADA POR LINHA de compra (nao agregada por telefone). Cruzamento é por
-    TELEFONE (a Conversas não tem e-mail; o Lead LP antigo tem e-mail mas está fora
-    do escopo principal deste dashboard). Mantemos cada compra separada — com sua
-    própria data — para atribuir a venda ao dia em que ela REALMENTE aconteceu,
-    em vez de empilhar todo o histórico de compras do telefone num único dia.
-    "nm" (nome, sem mascara) fica só p/ diagnóstico de telefone não casado
-    (log_unmatched_sales) — nunca é exportado em sales[]/DATA."""
+def norm_email(e: str) -> str:
+    e = norm(e)
+    return e if "@" in e else ""
+
+
+def money_brl(txt: str) -> float | None:
+    """Valor em BRL de uma célula ('R$ 2.997,00'); None se vazia/#REF!/inválida."""
+    t = (txt or "").strip()
+    if not re.search(r"\d", t):
+        return None
+    return to_float(t)
+
+
+def build_sales_list(sales_rows):
+    """Lê a aba de Compradores (todos os produtos) e devolve UMA entrada por compra
+    APROVADA do produto SALES_PRODUCT: {"d","email","phone","nm","fat","receita"}.
+    fat = Valor bruto (BRL); se a célula estiver #REF! (compra em moeda
+    estrangeira) converte o "Valor compra (orig.)" pela cotação FX_TO_BRL.
+    receita = Fat. líquido (BRL); se #REF!, usa Fat. líquido (USD) x cotação USD."""
     header = sales_rows[0] if sales_rows else []
     idx = header_index(
         header,
-        {"phone": ["telefone"], "date": ["data"], "faturamento": ["faturamento"], "receita": ["receita"],
-         "name": ["nome"]},
-        {"phone": 3, "date": 0, "faturamento": 6, "receita": 7, "name": 1},
+        {"date": ["data"], "status": ["status"], "product": ["produto"], "name": ["comprador", "nome"],
+         "email": ["e-mail", "email"], "phone": ["telefone"], "cur": ["moeda compra", "moeda"],
+         "orig": ["valor compra"], "bruto": ["valor bruto"],
+         "liq_usd": ["fat. liquido (usd)", "liquido (usd)"], "liq_brl": ["fat. liquido (brl)", "liquido (brl)"]},
+        {},
     )
-    out: dict[str, list] = {}
+    wanted = norm(SALES_PRODUCT)
+    out = []
     for row in sales_rows[1:]:
-        if not any((c or "").strip() for c in row):
+        if norm(cell(row, idx["product"])) != wanted:
             continue
-        phone = norm_phone(cell(row, idx["phone"]))
-        if not phone:
+        if norm(cell(row, idx["status"])) not in ("completo", "aprovado", "approved", "complete"):
             continue
-        out.setdefault(phone, []).append({
+        cur = (cell(row, idx["cur"]) or "BRL").upper()
+        fx = FX_TO_BRL.get(cur, 1.0)
+        fat = money_brl(cell(row, idx["bruto"]))
+        if fat is None:
+            fat = to_float(cell(row, idx["orig"])) * fx
+        rec = money_brl(cell(row, idx["liq_brl"]))
+        if rec is None:
+            rec = to_float(cell(row, idx["liq_usd"])) * FX_TO_BRL["USD"]
+        out.append({
             "d": parse_date(cell(row, idx["date"])),
-            "fat": to_float(cell(row, idx["faturamento"])),
-            "receita": to_float(cell(row, idx["receita"])),
+            "email": norm_email(cell(row, idx["email"])),
+            "phone": canon_phone(cell(row, idx["phone"])),
             "nm": cell(row, idx["name"]),
+            "fat": round(fat, 2),
+            "receita": round(rec, 2),
         })
     return out
 
 
-def log_unmatched_sales(sales_index, phone_attrib):
-    """Diagnóstico (stderr, não afeta a saída): compras da aba Compradores cujo
-    telefone não bate com NENHUMA conversa da aba Conversas MESMO após a
-    canonicalização (canon_phone, que já cobre DDI "55" e o 9º dígito do
-    celular). Essas vendas AGORA entram na dash mesmo assim (contam nos totais /
-    Visão Geral), só ficam SEM atribuição de anúncio ("(sem campanha)") — este
-    log serve pra dimensionar quanta receita fica sem origem e conferir se é
-    compra por outro canal (esperado) ou algum telefone ainda divergente."""
-    matched = sum(1 for phone in sales_index if canon_phone(phone) in phone_attrib)
-    unmatched = [(phone, p) for phone, purchases in sales_index.items()
-                 if canon_phone(phone) not in phone_attrib for p in purchases]
-    print(f"  vendas atribuídas a anúncio: {matched}/{len(sales_index)} telefones "
-          f"(cruzamento canônico Compradores × Conversas)", file=sys.stderr)
-    if not unmatched:
-        return
-    print(f"  {len(unmatched)} compra(s) SEM anúncio de origem (entram nos totais como \"(sem campanha)\"):",
-          file=sys.stderr)
-    for phone, p in unmatched:
-        print(f"    - {p['d'] or '?'}  {first_last_initial(p['nm'])}  tel …{phone[-4:] if len(phone) >= 4 else phone}",
-              file=sys.stderr)
+def attribute_sales(purchases, lead_by_email, lead_by_phone):
+    """Cruza cada compra com os Leads por E-MAIL e TELEFONE (ambos normalizados:
+    e-mail minúsculo; telefone canônico = DDD + 8 últimos dígitos, sem DDI/9º dígito).
+    Todo lead que bate (por qualquer das duas chaves) é candidato; a atribuição vai
+    para o 1º lead de MÍDIA PAGA (senão, o 1º lead de qualquer origem). Sem match, a
+    venda continua nos totais como "(sem campanha)" / orgânico."""
+    sales, unmatched = [], []
+    for p in purchases:
+        cands = []
+        if p["email"]:
+            cands += lead_by_email.get(p["email"], [])
+        if len(p["phone"]) >= 10:
+            cands += lead_by_phone.get(p["phone"], [])
+        paid = [l for l in cands if l["src"] == "meta"]
+        pool = paid or cands
+        lead = min(pool, key=lambda l: l["d"] or "9999") if pool else None
+        if lead is None:
+            unmatched.append(p)
+        sales.append({
+            "d": p["d"],
+            "src": lead["src"] if lead else "org",
+            "plat": lead["plat"] if lead else "—",
+            "camp": lead["camp"] if lead else "(sem campanha)",
+            "adset": lead["adset"] if lead else "(sem conjunto)",
+            "ad": lead["ad"] if lead else "(sem anúncio)",
+            "vendas": 1,
+            "fat": p["fat"],
+            "receita": p["receita"],
+        })
+    n_paid = sum(1 for s in sales if s["src"] == "meta")
+    print(f"  vendas {SALES_PRODUCT}: {len(sales)} | com lead cruzado: {len(sales) - len(unmatched)} "
+          f"| atribuídas a mídia paga: {n_paid} | sem lead: {len(unmatched)}", file=sys.stderr)
+    for p in unmatched:
+        print(f"    - sem lead: {p['d'] or '?'}  {first_last_initial(p['nm'])}  tel …{p['phone'][-4:]}  "
+              f"{mask_email(p['email'])}", file=sys.stderr)
+    return sales
 
 
 # --------------------------------------------------------------------------- #
 # Processamento -> registros brutos
 # --------------------------------------------------------------------------- #
-def process(leads_rows, pesquisa_rows, meta_rows):
+def process(leads_rows, pesquisa_rows, meta_rows, sales_rows=None):
     lheader = leads_rows[0] if leads_rows else []
     lidx = header_index(
         lheader,
@@ -338,6 +384,7 @@ def process(leads_rows, pesquisa_rows, meta_rows):
             resp_phones.add(ph)
 
     leads = []
+    lead_by_email, lead_by_phone = {}, {}
     for row in leads_rows[1:]:
         if not any((c or "").strip() for c in row) or is_test_lead(" ".join(str(c) for c in row)):
             continue
@@ -355,7 +402,7 @@ def process(leads_rows, pesquisa_rows, meta_rows):
         # ... ou a coluna "Respondeu pesquisa?" da propria aba Leads marca Sim.
         respondeu = (em in resp_emails) or (len(ph) >= 10 and ph in resp_phones) \
             or norm(cell(row, lidx["resp"])) in ("sim", "s", "yes", "true", "1")
-        leads.append({
+        lead = {
             "d": parse_date(cell(row, lidx["created"])),
             "src": src,
             "plat": plat,
@@ -369,8 +416,13 @@ def process(leads_rows, pesquisa_rows, meta_rows):
             "nm": first_last_initial(cell(row, lidx["name"])),
             "em": mask_email(cell(row, lidx["email"])),
             "ph": mask_phone(cell(row, lidx["phone"])),
-        })
-    sales = []   # funil sem vendas/faturamento
+        }
+        leads.append(lead)
+        if em and "@" in em:
+            lead_by_email.setdefault(em, []).append(lead)
+        if len(ph) >= 10:
+            lead_by_phone.setdefault(ph, []).append(lead)
+    sales = attribute_sales(build_sales_list(sales_rows or []), lead_by_email, lead_by_phone)
 
     mheader = meta_rows[0] if meta_rows else []
     midx = header_index(
@@ -513,6 +565,7 @@ def main():
     ap.add_argument("--leads-file", help="CSV local da aba Leads (fonte principal)")
     ap.add_argument("--pesquisa-file", help="CSV local da aba Respostas da Pesquisa")
     ap.add_argument("--meta-file", help="CSV local da aba Meta Ads")
+    ap.add_argument("--sales-file", help="CSV local da planilha de Compradores")
     ap.add_argument("--template", default="build/template.html")
     ap.add_argument("--out", default="dist/index.html")
     args = ap.parse_args()
@@ -521,7 +574,9 @@ def main():
     pesquisa_rows = load_rows(EXPORT_URL.format(sid=SPREADSHEET_ID, gid=GID_PESQUISA), args.pesquisa_file)
     meta_rows = load_rows(EXPORT_URL.format(sid=META_SPREADSHEET_ID, gid=GID_META), args.meta_file)
 
-    data = process(leads_rows, pesquisa_rows, meta_rows)
+    sales_rows = load_rows(EXPORT_URL.format(sid=SALES_SPREADSHEET_ID, gid=GID_SALES), args.sales_file)
+
+    data = process(leads_rows, pesquisa_rows, meta_rows, sales_rows)
 
     # Insights de Tráfego (texto pré-escrito) — lidos do arquivo versionado ao
     # lado do template. Sem chamada de API no build.
@@ -541,6 +596,7 @@ def main():
     nl = len(data['leads'])
     print(f"  leads     : {nl}  respostas: {q}  taxa de resposta: {q / nl:.1%}" if nl else "  leads     : 0", file=sys.stderr)
     print(f"  meta      : {len(data['meta'])} linhas", file=sys.stderr)
+    print(f"  vendas    : {vd}  faturamento: R$ {fat:,.2f}", file=sys.stderr)
     print(f"  out       : {args.out}", file=sys.stderr)
 
 
