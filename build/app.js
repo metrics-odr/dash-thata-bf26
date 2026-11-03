@@ -451,6 +451,16 @@ function toggleSet(set,key,ctrl,others){
 }
 
 /* ---------------- funil ---------------- */
+/* Vendas e Faturamento (Black Vitalícia): CAC, ticket médio e conversão da lista
+   (vendas / leads) saem de DATA.sales (cruzamento Leads × Compradores). */
+function salesSteps(t, dv, s){
+  return [
+    ['Vendas (Black Vitalícia)', s.vendas==null?'-':intf(s.vendas),
+      [['CAC',brl(s.cac)],['Ticket médio',brl(s.tm)],['Conv. Lista',pct(t.leads&&s.vendas?s.vendas/t.leads:null)]], false, 'hl-fat'],
+    ['Faturamento', brl(s.fat), [['ROAS',s.roas==null?'-':numf(s.roas)+'x'],['Receita',brl(s.receita)]], false, 'hl-fat'],
+  ];
+}
+
 function funnelHTML(steps){ return steps.map(s=>`
     <div class="step ${s[3]?'na':''} ${s[4]||''}"><div class="step-main"><div class="m-label">${s[0]}</div><div class="m-val">${s[1]}</div></div>
     <div class="secs">${s[2].map(x=>`<div><span class="s-label">${x[0]}</span><span class="s-val">${x[1]}</span></div>`).join('')}</div></div>`).join(''); }
@@ -612,6 +622,7 @@ function renderGeralCore(ids){
     ['Page Views', intf(t.pv), [['CR',pct(dv.cr)],['CPV',brl(dv.cpv)]]],
     ['Leads', intf(t.leads), [['CPL',brl(dv.cpl)],['ConvLP',pct(dv.convlp)]]],
     ['Respostas (pesquisa)', intf(t.mqls), [['Tx. resposta',pct(dv.tx)],['Custo/Resp.',brl(dv.cpmql)]], false, 'hl-mql'],
+    ...salesSteps(t, dv, s),
   ];
   document.getElementById(ids.funnel).innerHTML=funnelHTML(steps);
   // ---- Mar05: métricas secundárias mais úteis (não repetem o funil) ----
@@ -993,6 +1004,7 @@ function renderMeta(){
     ['Page Views', intf(t.pv), [['CR',pct(dv.cr)],['CPV',brl(dv.cpv)]]],
     ['Leads', intf(t.leads), [['CPL',brl(dv.cpl)],['ConvLP',pct(dv.convlp)]]],
     ['Respostas (pesquisa)', intf(t.mqls), [['Tx. resposta',pct(dv.tx)],['Custo/Resp.',brl(dv.cpmql)]], false, 'hl-mql'],
+    ...salesSteps(t, dv, s),
   ];
   document.getElementById('metaFunnel').innerHTML=funnelHTML(steps);
 
