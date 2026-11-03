@@ -455,9 +455,9 @@ function toggleSet(set,key,ctrl,others){
    (vendas / leads) saem de DATA.sales (cruzamento Leads × Compradores). */
 function salesSteps(t, dv, s){
   return [
-    ['Vendas (Black Vitalícia)', s.vendas==null?'-':intf(s.vendas),
-      [['CAC',brl(s.cac)],['Ticket médio',brl(s.tm)],['Conv. Lista',pct(t.leads&&s.vendas?s.vendas/t.leads:null)]], false, 'hl-fat'],
-    ['Faturamento', brl(s.fat), [['ROAS',s.roas==null?'-':numf(s.roas)+'x'],['Receita',brl(s.receita)]], false, 'hl-fat'],
+    ['Vendas', s.vendas==null?'-':intf(s.vendas),
+      [['CAC',brl(s.cac)],['Ticket médio',brl(s.tm)]], false, 'hl-fat'],
+    ['Faturamento', brl(s.fat), [['ROAS',s.roas==null?'-':numf(s.roas)+'x'],['Conv. Lista',pct(t.leads&&s.vendas?s.vendas/t.leads:null)]], false, 'hl-fat'],
   ];
 }
 
