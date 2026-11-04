@@ -191,7 +191,16 @@ function renderTable(cfg){
   const fmt=(t,v)=> t==='brl'?brl(v):t==='pct'?pct(v):t==='int'?intf(v):t==='num'?numf(v):t==='date'?brdate(v):t==='html'?(v==null?'-':String(v)):dimf(v);
   const widths=fit?[]:cfg.cols.map(c=>colWidth(cfg,c)); const totalW=widths.reduce((a,b)=>a+b,0);
   // modo fit: dimensão/data com largura fixa; colunas numéricas dividem o resto por igual
-  const fitW=c=> c.w?c.w+'px' : c.type==='date'?'74px' : c.type==='dim'?(c.big?'210px':'116px') : '';
+  // numéricas: largura = maior valor (linhas+total) já formatado, p/ NUNCA cortar o número;
+  // se a soma passar da largura do card, a tabela rola na horizontal (min-width abaixo)
+  const FONT_FIT='11px "Segoe UI",system-ui,-apple-system,Roboto,sans-serif', FONT_FITB='700 11px "Segoe UI",system-ui,-apple-system,Roboto,sans-serif';
+  const fitNum={};
+  if(fit) cfg.cols.forEach(c=>{ if(c.w||c.type==='date'||c.type==='dim') return;
+    let m=0; (cfg.rows||[]).forEach(r=>{ const w=textWidth(fmtStd(c.type,r.cells[c.key]),FONT_FIT); if(w>m)m=w; });
+    if(cfg.total&&cfg.total[c.key]!=null){ const w=textWidth(fmtStd(c.type,cfg.total[c.key]),FONT_FITB); if(w>m)m=w; }
+    const hw=Math.max(0,...String(c.label||'').split(/\s+/).map(x=>textWidth(x,'700 10px "Segoe UI",system-ui,sans-serif')));
+    fitNum[c.key]=Math.max(48,Math.ceil(Math.max(m,hw))+14); });
+  const fitW=c=> c.w?c.w+'px' : c.type==='date'?'74px' : c.type==='dim'?(c.big?'210px':'116px') : (fitNum[c.key]?fitNum[c.key]+'px':'');
   const colgroup='<colgroup>'+cfg.cols.map((c,i)=>{
     const w=fit?fitW(c):(widths[i]+'px'); return `<col${w?` style="width:${w}"`:''}>`;
   }).join('')+'</colgroup>';
@@ -218,7 +227,8 @@ function renderTable(cfg){
     const v=cfg.total[c.key]; const isFirst=i===0&&v==null;
     return `<td class="${c.type==='dim'?'dim':''}${stkCls(c)}" title="${isFirst?'Total Geral':esc(fmtStd(c.type,v))}">${isFirst?'Total Geral':fmt(c.type,v)}</td>`;
   }).join('')+'</tr></tfoot>'; }
-  table.style.width=fit?'100%':totalW+'px';
+  if(fit){ const sum=cfg.cols.reduce((a,c)=>a+parseInt(fitW(c)||60),0); table.style.width='100%'; table.style.minWidth=sum+'px'; }
+  else { table.style.minWidth=''; table.style.width=totalW+'px'; }
   table.style.setProperty('--ncols',cfg.cols.length);
   table.innerHTML=colgroup+thead+tbody+tfoot;
   const cols=table.querySelector('colgroup').children;
@@ -437,10 +447,10 @@ function renderSplitTable(cfg){
 }
 /* Heatmap por coluna: cor FIXA por métrica (definida em identidade-visual.css),
    só a OPACIDADE varia com o valor (maior valor = mais vibrante). */
-const HEAT_HUE={gasto:'--heat-gasto', leads:'--heat-leads', mqls:'--heat-mqls', roas:'--heat-roas', vendas:'--heat-vendas'};
+const HEAT_HUE={gasto:'--heat-gasto', leads:'--heat-leads', mqls:'--heat-mqls', roas:'--heat-roas', vendas:'--heat-vendas', cpl:'--heat-cpl', cac:'--heat-cac'};
 function heat(v,lo,hi,kind){
-  if(v==null||!isFinite(v)||hi===lo||!HEAT_HUE[kind]) return 'transparent';
-  const t=Math.max(0,Math.min(1,(v-lo)/(hi-lo)));
+  if(v==null||!isFinite(v)||!HEAT_HUE[kind]) return 'transparent';
+  const t=hi===lo?1:Math.max(0,Math.min(1,(v-lo)/(hi-lo)));
   const c=hx2rgb(cvar(HEAT_HUE[kind]));
   return `rgba(${c[0]},${c[1]},${c[2]},${(0.06+0.5*t).toFixed(3)})`;
 }
@@ -962,10 +972,10 @@ const DAILY_COLS=[
   {key:'date',label:'Data',type:'date'},{key:'wd',label:'Dia',type:'dim',w:70},
   {key:'gasto',label:'Gasto',type:'brl',heat:'gasto'},{key:'cpm',label:'CPM',type:'brl'},
   {key:'ctr',label:'CTR',type:'pct'},{key:'cr',label:'CR',type:'pct'},{key:'convlp',label:'ConvLP',type:'pct'},
-  {key:'leads',label:'Leads',type:'int',heat:'leads'},{key:'cpl',label:'CPL',type:'brl'},
+  {key:'leads',label:'Leads',type:'int',heat:'leads'},{key:'cpl',label:'CPL',type:'brl',heat:'cpl'},
   {key:'tx',label:'Tx. resposta',type:'pct'},{key:'mqls',label:'Respostas',type:'int',heat:'mqls'},{key:'cpmql',label:'Custo/Resp.',type:'brl'},
   {key:'chk',label:'Checkouts',type:'int'},{key:'vischk',label:'VisCHK',type:'pct'},
-  {key:'convmql',label:'ConvResp',type:'pct'},{key:'vendas',label:'Vendas',type:'int',heat:'vendas'},{key:'cac',label:'CAC',type:'brl'},
+  {key:'convmql',label:'ConvResp',type:'pct'},{key:'vendas',label:'Vendas',type:'int',heat:'vendas'},{key:'cac',label:'CAC',type:'brl',heat:'cac'},
   {key:'fat',label:'Fat.',type:'brl'},{key:'receita',label:'Receita',type:'brl'},{key:'roas',label:'ROAS',type:'num',heat:'roas'},
 ];
 function dailyCells(x,d,isTotal){
@@ -1026,7 +1036,7 @@ function renderMeta(){
   renderTable({id:'mTopCac', center:true,
     cols:[{key:'dim',label:'Anúncios',type:'dim',big:true},{key:'mqls',label:'Respostas',type:'int'},
       {key:'cpmql',label:'Custo/Resp.',type:'brl'},{key:'vendas',label:'Vendas',type:'int'},
-      {key:'cac',label:'CAC',type:'brl'},{key:'fat',label:'Fat.',type:'brl'},{key:'roas',label:'ROAS',type:'num'}],
+      {key:'cac',label:'CAC',type:'brl',heat:'cac'},{key:'fat',label:'Fat.',type:'brl'},{key:'roas',label:'ROAS',type:'num',heat:'roas'}],
     rows:topCacRows});
 
   const dl=daily(fL,fM,fS).slice().reverse();
@@ -1043,14 +1053,14 @@ function renderMeta(){
   // rolam horizontalmente juntas (band do meio) — cabendo tudo, não aparece
   // scroll nenhum e fica idêntico a uma tabela única, cabeçalho incluso.
   const hcols=[
-    {key:'dim',label:'',type:'dim',big:true,band:'l'},{key:'gasto',label:'Gasto',type:'brl',band:'l'},
+    {key:'dim',label:'',type:'dim',big:true,band:'l'},{key:'gasto',label:'Gasto',type:'brl',band:'l',heat:'gasto'},
     {key:'cpm',label:'CPM',type:'brl'},
     {key:'ctr',label:'CTR',type:'pct'},{key:'cr',label:'CR',type:'pct'},{key:'convlp',label:'ConvLP',type:'pct'},
-    {key:'leads',label:'Leads',type:'int'},{key:'cpl',label:'CPL',type:'brl'},
+    {key:'leads',label:'Leads',type:'int'},{key:'cpl',label:'CPL',type:'brl',heat:'cpl'},
     {key:'tx',label:'Tx. resposta',type:'pct'},
     {key:'mqls',label:'Respostas',type:'int'},{key:'cpmql',label:'Custo/Resp.',type:'brl'},
-    {key:'convmql',label:'ConvResp',type:'pct'},{key:'vendas',label:'Vendas',type:'int'},{key:'cac',label:'CAC',type:'brl'},
-    {key:'fat',label:'Fat.',type:'brl'},{key:'receita',label:'Receita',type:'brl'},{key:'roas',label:'ROAS',type:'num'},
+    {key:'convmql',label:'ConvResp',type:'pct'},{key:'vendas',label:'Vendas',type:'int'},{key:'cac',label:'CAC',type:'brl',heat:'cac'},
+    {key:'fat',label:'Fat.',type:'brl'},{key:'receita',label:'Receita',type:'brl'},{key:'roas',label:'ROAS',type:'num',heat:'roas'},
   ];
   function hierRows(map){ return Object.entries(map).map(([k,a])=>{const d=derive(a),s=salesOf(a);
     return {k, cells:{dim:k,gasto:d.gasto,cpm:d.cpm,ctr:d.ctr,cr:d.cr,convlp:d.convlp,leads:a.leads,cpl:d.cpl,tx:d.tx,mqls:a.mqls,cpmql:d.cpmql,
