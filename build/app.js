@@ -227,10 +227,17 @@ function renderTable(cfg){
     const v=cfg.total[c.key]; const isFirst=i===0&&v==null;
     return `<td class="${c.type==='dim'?'dim':''}${stkCls(c)}" title="${isFirst?'Total Geral':esc(fmtStd(c.type,v))}">${isFirst?'Total Geral':fmt(c.type,v)}</td>`;
   }).join('')+'</tr></tfoot>'; }
-  if(fit){ const sum=cfg.cols.reduce((a,c)=>a+parseInt(fitW(c)||60),0); table.style.width='100%'; table.style.minWidth=sum+'px'; }
+  if(fit){ const base=cfg.cols.map(c=>parseInt(fitW(c)||60)), sum=base.reduce((a,b)=>a+b,0);
+    table.style.width='100%'; table.style.minWidth='';
+    // sem scroll lateral: se a soma passar da largura disponível, encolhe colunas + fonte (--fs)
+    table._fitApply=()=>{ const wrap=table.parentElement, avail=wrap?wrap.clientWidth:0; if(!avail) return;
+      const f=Math.max(0.5,Math.min(1,avail/sum)); table.style.setProperty('--fs',f.toFixed(3));
+      const cs=table.querySelectorAll(':scope > colgroup > col'); cs.forEach((el,i)=>{ el.style.width=(base[i]*f)+'px'; }); };
+    if(!table._ro && window.ResizeObserver && table.parentElement){ table._ro=new ResizeObserver(()=>table._fitApply&&table._fitApply()); table._ro.observe(table.parentElement); } }
   else { table.style.minWidth=''; table.style.width=totalW+'px'; }
   table.style.setProperty('--ncols',cfg.cols.length);
   table.innerHTML=colgroup+thead+tbody+tfoot;
+  if(fit&&table._fitApply) table._fitApply();
   const cols=table.querySelector('colgroup').children;
   // sort handlers
   table.querySelectorAll('thead th').forEach(th=>{
@@ -450,7 +457,8 @@ function renderSplitTable(cfg){
 const HEAT_HUE={gasto:'--heat-gasto', leads:'--heat-leads', mqls:'--heat-mqls', roas:'--heat-roas', vendas:'--heat-vendas', cpl:'--heat-cpl', cac:'--heat-cac'};
 function heat(v,lo,hi,kind){
   if(v==null||!isFinite(v)||!HEAT_HUE[kind]) return 'transparent';
-  const t=hi===lo?1:Math.max(0,Math.min(1,(v-lo)/(hi-lo)));
+  let t=hi===lo?1:Math.max(0,Math.min(1,(v-lo)/(hi-lo)));
+  if(kind==='cpl'||kind==='cac') t=1-t;   // custo: quanto mais BARATO, mais escuro
   const c=hx2rgb(cvar(HEAT_HUE[kind]));
   return `rgba(${c[0]},${c[1]},${c[2]},${(0.06+0.5*t).toFixed(3)})`;
 }
