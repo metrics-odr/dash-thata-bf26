@@ -456,8 +456,8 @@ function toggleSet(set,key,ctrl,others){
 function salesSteps(t, dv, s){
   return [
     ['Vendas', s.vendas==null?'-':intf(s.vendas),
-      [['CAC',brl(s.cac)],['Conv. Lista',pct(t.leads&&s.vendas?s.vendas/t.leads:null)]], false, 'hl-fat sm'],
-    ['Faturamento', brl(s.fat), [['Ticket médio',brl(s.tm)],['ROAS',s.roas==null?'-':numf(s.roas)+'x']], false, 'hl-fat sm'],
+      [['CAC',brl(s.cac)],['Conv. Lista',pct(t.leads&&s.vendas?s.vendas/t.leads:null)]], false, 'hl-fat'],
+    ['Faturamento', brl(s.fat), [['Ticket médio',brl(s.tm)],['ROAS',s.roas==null?'-':numf(s.roas)+'x']], false, 'hl-fat'],
   ];
 }
 
